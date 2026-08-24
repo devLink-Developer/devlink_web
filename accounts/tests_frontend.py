@@ -33,17 +33,47 @@ class NavigationContractParser(HTMLParser):
 class FrontendContractTests(SimpleTestCase):
     def test_email_templates_keep_brand_and_contact_links(self):
         root = Path(settings.BASE_DIR) / "templates"
-        for name in (
+        template_names = (
             "email-bienvenida.html",
             "email-preview.html",
             "email-campana-servicios-inline.html",
             "email-campana-suite-lite-inline.html",
             "email-campana-chatbot-webapp.html",
-        ):
+        )
+        for name in template_names:
             source = (root / name).read_text(encoding="utf-8")
             self.assertIn("devLink", source)
-            self.assertIn("devlink.com.ar", source)
-            self.assertRegex(source.lower(), r"#(?:07162d|1264f6|06d6ff)")
+            self.assertIn('href="https://devlink.com.ar', source)
+            self.assertIn('href="mailto:info@devlink.com.ar"', source)
+            for color in ("#07162d", "#1264f6", "#06d6ff"):
+                self.assertIn(color, source.lower())
+            self.assertRegex(
+                source,
+                r'<table[^>]+role="presentation"[^>]+width="(?:100%|600)"',
+            )
+            self.assertRegex(
+                source,
+                r'<table[^>]+role="presentation"[^>]+width="600"[^>]+style="[^"]*'
+                r'width:\s*100%;\s*max-width:\s*600px',
+            )
+            self.assertRegex(source, r'style="[^"]*(?:background|color|padding):')
+            self.assertIn("@media", source)
+
+        chatbot = (root / "email-campana-chatbot-webapp.html").read_text(
+            encoding="utf-8"
+        )
+        self.assertGreaterEqual(chatbot.count('class="stack cta-cell"'), 2)
+        self.assertIn(".cta-cell", chatbot)
+
+        services = (root / "email-campana-servicios-inline.html").read_text(
+            encoding="utf-8"
+        ).split("<!-- Footer -->", 1)[1]
+        self.assertNotRegex(services, r"#(?:64748b|475569)")
+
+        suite_lite = (root / "email-campana-suite-lite-inline.html").read_text(
+            encoding="utf-8"
+        ).rsplit('<tr><td class="section-padding"', 1)[1]
+        self.assertNotIn("#637a98", suite_lite)
 
     def test_home_preserves_sections_and_contact_fields(self):
         response = self.client.get("/")

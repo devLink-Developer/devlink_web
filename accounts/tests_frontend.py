@@ -81,18 +81,21 @@ class FrontendContractTests(SimpleTestCase):
         self.assertIn("event.key === 'Escape'", source)
         self.assertIn("navToggle.focus()", source)
 
-    def test_closed_mobile_navigation_is_removed_from_focus_order(self):
+    def test_navigation_progressively_enhances_focus_management(self):
         response = self.client.get("/")
         parser = NavigationContractParser()
-        parser.feed(response.content.decode("utf-8"))
+        source = response.content.decode("utf-8")
+        parser.feed(source)
 
         self.assertGreater(parser.nav_link_count, 0)
-        self.assertIn("inert", parser.nav_attributes)
+        self.assertNotIn("inert", parser.nav_attributes)
         self.assertEqual(parser.toggle_attributes["aria-expanded"], "false")
         self.assertEqual(
             parser.toggle_attributes["aria-controls"],
             parser.nav_attributes["id"],
         )
+        self.assertIn("nav.inert = !desktopNavigation.matches && !isOpen", source)
+        self.assertIn("setNavigationState(false)", source)
 
         css = (
             Path(settings.BASE_DIR) / "static" / "styles.css"

@@ -460,3 +460,71 @@ class FrontendContractTests(SimpleTestCase):
         )
         self.assertIn(".product-item__copy > p {", css)
         self.assertIn("overflow-wrap: anywhere;", css)
+
+    def test_admin_templates_extend_shared_base_and_keep_csrf(self):
+        root = Path(settings.BASE_DIR) / "templates" / "admin_panel"
+        templates = list(root.glob("*.html"))
+        self.assertGreaterEqual(len(templates), 12)
+        for path in templates:
+            source = path.read_text(encoding="utf-8")
+            self.assertIn("{% extends 'base.html' %}", source)
+        for name in (
+            "user_form.html",
+            "user_edit.html",
+            "product_form.html",
+            "product_edit.html",
+            "user_confirm_delete.html",
+        ):
+            self.assertIn(
+                "{% csrf_token %}",
+                (root / name).read_text(encoding="utf-8"),
+            )
+
+    def test_admin_templates_use_shared_operational_components(self):
+        root = Path(settings.BASE_DIR) / "templates" / "admin_panel"
+        templates = {
+            path.name: path.read_text(encoding="utf-8")
+            for path in root.glob("*.html")
+        }
+
+        for name, source in templates.items():
+            with self.subTest(template=name):
+                self.assertIn('class="admin-shell page-shell', source)
+                self.assertIn('class="admin-toolbar"', source)
+
+        for name in (
+            "users_list.html",
+            "products_list.html",
+            "contact_requests_list.html",
+            "whatsapp_report.html",
+        ):
+            self.assertIn('class="data-table', templates[name])
+
+        for name in (
+            "user_form.html",
+            "user_edit.html",
+            "product_form.html",
+            "product_edit.html",
+        ):
+            self.assertIn('class="form-grid', templates[name])
+
+        self.assertIn(
+            'class="danger-panel"',
+            templates["user_confirm_delete.html"],
+        )
+        self.assertNotRegex(
+            templates["whatsapp_report.html"],
+            r'\sstyle="',
+        )
+
+        css = (Path(settings.BASE_DIR) / "static" / "styles.css").read_text(
+            encoding="utf-8"
+        )
+        for selector in (
+            ".admin-shell",
+            ".admin-toolbar",
+            ".form-grid",
+            ".danger-panel",
+            ".status-badge",
+        ):
+            self.assertIn(selector, css)

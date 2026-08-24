@@ -3,79 +3,21 @@
 {% block title %}Eliminar Usuario - DevLink{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50">
-    <!-- Navigation -->
-    <nav class="bg-white shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                        <i class="fas fa-shield-alt text-red-600 text-2xl"></i>
-                    </div>
-                    <div class="ml-4">
-                        <h1 class="text-xl font-semibold text-gray-900">Eliminar Usuario</h1>
-                    </div>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <a href="/admin-panel/users/" class="text-gray-600 hover:text-gray-900">
-                        <i class="fas fa-users"></i> Usuarios
-                    </a>
-                    <span class="text-sm text-gray-700">{{ user.username }}</span>
-                    <a href="{% url 'logout' %}" class="text-gray-500 hover:text-gray-700">
-                        <i class="fas fa-sign-out-alt"></i> Salir
-                    </a>
-                </div>
+<div class="admin-shell page-shell page-shell--narrow">
+    <header class="admin-toolbar">
+        <div class="admin-toolbar__title"><span class="admin-mark admin-mark--danger" aria-hidden="true"><i class="fas fa-user-xmark"></i></span><div><h1>Eliminar Usuario</h1><p>Confirmar Eliminación</p></div></div>
+        <nav class="admin-toolbar__actions" aria-label="Navegación administrativa"><a href="/admin-panel/users/" class="button button--quiet"><i class="fas fa-users" aria-hidden="true"></i> Usuarios</a><span class="admin-user">{{ user.username }}</span><a href="{% url 'logout' %}" class="button button--secondary"><i class="fas fa-sign-out-alt" aria-hidden="true"></i> Salir</a></nav>
+    </header>
+    <main class="admin-content">
+        <section class="danger-panel">
+            <div class="danger-panel__heading"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i><h2>Confirmar Eliminación</h2></div>
+            <div class="alert alert--danger"><i class="fas fa-ban" aria-hidden="true"></i><p><strong>¡Atención!</strong> Esta acción no se puede deshacer. Se eliminará permanentemente el usuario y todos sus datos asociados.</p></div>
+            <div class="danger-panel__details">
+                <h3>Información del usuario a eliminar:</h3>
+                <dl class="detail-list"><div><dt>Usuario:</dt><dd>{{ user_obj.username }}</dd></div><div><dt>Email:</dt><dd>{{ user_obj.email }}</dd></div><div><dt>Empresa:</dt><dd>{{ user_obj.company_name|default:"Sin empresa" }}</dd></div><div><dt>Tenant ID:</dt><dd><code>{{ user_obj.tenant_id }}</code></dd></div><div><dt>Fecha de registro:</dt><dd>{{ user_obj.date_joined|date:"d/m/Y H:i" }}</dd></div><div><dt>Suscripción:</dt><dd>{{ user_obj.clientprofile.subscription_type|capfirst }}</dd></div></dl>
             </div>
-        </div>
-    </nav>
-
-    <!-- Main content -->
-    <main class="max-w-2xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div class="px-4 py-6 sm:px-0">
-            <div class="bg-white shadow rounded-lg">
-                <div class="px-4 py-5 sm:p-6">
-                    <div class="flex items-center mb-4">
-                        <i class="fas fa-exclamation-triangle text-red-500 text-2xl mr-3"></i>
-                        <h3 class="text-lg leading-6 font-medium text-gray-900">
-                            Confirmar Eliminación
-                        </h3>
-                    </div>
-                    
-                    <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-                        <p class="text-sm text-red-800">
-                            <strong>¡Atención!</strong> Esta acción no se puede deshacer. 
-                            Se eliminará permanentemente el usuario y todos sus datos asociados.
-                        </p>
-                    </div>
-
-                    <div class="mb-6">
-                        <h4 class="text-md font-medium text-gray-900 mb-2">
-                            Información del usuario a eliminar:
-                        </h4>
-                        <div class="bg-gray-50 p-4 rounded-lg space-y-2">
-                            <p><strong>Usuario:</strong> {{ user_obj.username }}</p>
-                            <p><strong>Email:</strong> {{ user_obj.email }}</p>
-                            <p><strong>Empresa:</strong> {{ user_obj.company_name|default:"Sin empresa" }}</p>
-                            <p><strong>Tenant ID:</strong> <code>{{ user_obj.tenant_id }}</code></p>
-                            <p><strong>Fecha de registro:</strong> {{ user_obj.date_joined|date:"d/m/Y H:i" }}</p>
-                            <p><strong>Suscripción:</strong> {{ user_obj.clientprofile.subscription_type|capfirst }}</p>
-                        </div>
-                    </div>
-
-                    <form method="post" class="flex justify-end space-x-3">
-                        {% csrf_token %}
-                        <a href="/admin-panel/users/" 
-                           class="bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400">
-                            Cancelar
-                        </a>
-                        <button type="submit" 
-                                class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700">
-                            <i class="fas fa-trash mr-2"></i>Eliminar Usuario
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
+            <form method="post" class="danger-panel__actions">{% csrf_token %}<a href="/admin-panel/users/" class="button button--secondary">Cancelar</a><button type="submit" class="button button--danger"><i class="fas fa-trash" aria-hidden="true"></i> Eliminar Usuario</button></form>
+        </section>
     </main>
 </div>
 {% endblock %}

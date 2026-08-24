@@ -1,5 +1,7 @@
+import re
 from html.parser import HTMLParser
 from pathlib import Path
+from urllib.parse import urlparse
 
 from django.conf import settings
 from django.template.loader import render_to_string
@@ -29,6 +31,38 @@ class NavigationContractParser(HTMLParser):
             self._inside_navigation = False
 
 
+class EmailTableParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self._tables = []
+        self._cells = []
+        self.tables = []
+        self.first_logo_cell_styles = []
+
+    def handle_starttag(self, tag, attrs):
+        attributes = dict(attrs)
+        if tag == "table":
+            self._tables.append({"attrs": attributes, "has_th": False})
+        elif tag == "th" and self._tables:
+            self._tables[-1]["has_th"] = True
+        if tag == "td":
+            self._cells.append(attributes)
+        elif (
+            tag == "img"
+            and attributes.get("alt") == "devLink"
+            and not self.first_logo_cell_styles
+        ):
+            self.first_logo_cell_styles = [
+                cell.get("style", "") for cell in reversed(self._cells)
+            ]
+
+    def handle_endtag(self, tag):
+        if tag == "table" and self._tables:
+            self.tables.append(self._tables.pop())
+        elif tag == "td" and self._cells:
+            self._cells.pop()
+
+
 @override_settings(STATIC_ROOT=Path(settings.BASE_DIR) / "static")
 class FrontendContractTests(SimpleTestCase):
     def test_email_templates_keep_brand_and_contact_links(self):
@@ -47,33 +81,160 @@ class FrontendContractTests(SimpleTestCase):
             self.assertIn('href="mailto:info@devlink.com.ar"', source)
             for color in ("#07162d", "#1264f6", "#06d6ff"):
                 self.assertIn(color, source.lower())
+            hrefs = re.findall(r'href="([^"]+)"', source)
+            site_hosts = {
+                urlparse(href).hostname
+                for href in hrefs
+                if href.startswith("https://") and "devlink" in href
+            }
+            self.assertTrue(site_hosts)
+            self.assertTrue(
+                site_hosts.issubset({"devlink.com.ar", "www.devlink.com.ar"})
+            )
             self.assertRegex(
                 source,
                 r'<table[^>]+role="presentation"[^>]+width="(?:100%|600)"',
             )
-            self.assertRegex(
-                source,
-                r'<table[^>]+role="presentation"[^>]+width="600"[^>]+style="[^"]*'
-                r'width:\s*100%;\s*max-width:\s*600px',
+            parser = EmailTableParser()
+            parser.feed(source)
+            shell_styles = [
+                self._inline_style(table["attrs"].get("style", ""))
+                for table in parser.tables
+                if table["attrs"].get("role") == "presentation"
+                and table["attrs"].get("width") == "600"
+            ]
+            self.assertTrue(
+                any(
+                    style.get("width") == "100%"
+                    and style.get("max-width") == "600px"
+                    and (
+                        style.get("background") == "#ffffff"
+                        or style.get("background-color") == "#ffffff"
+                    )
+                    for style in shell_styles
+                )
             )
-            self.assertRegex(source, r'style="[^"]*(?:background|color|padding):')
-            self.assertIn("@media", source)
+            self.assertTrue(
+                any(
+                    style.get("padding")
+                    and (
+                        style.get("background") == "#07162d"
+                        or style.get("background-color") == "#07162d"
+                    )
+                    for style in map(
+                        self._inline_style, parser.first_logo_cell_styles
+                    )
+                )
+            )
+
+        responsive_contracts = {
+            "email-bienvenida.html": (
+                r"\.email-shell\{[^}]*padding:0!important",
+                r"\.section-padding\{[^}]*padding-left:20px!important;"
+                r"[^}]*padding-right:20px!important",
+            ),
+            "email-preview.html": (
+                r"\.preview-section\{[^}]*padding-left:20px!important;"
+                r"[^}]*padding-right:20px!important",
+            ),
+            "email-campana-servicios-inline.html": (
+                r"\.email-shell\{[^}]*padding:0!important",
+            ),
+            "email-campana-suite-lite-inline.html": (
+                r"\.email-shell\{[^}]*padding:0!important",
+                r"\.section-padding\{[^}]*padding-left:24px!important;"
+                r"[^}]*padding-right:24px!important",
+            ),
+            "email-campana-chatbot-webapp.html": (
+                r"\.email-shell\{[^}]*padding:0!important",
+                r"\.section\{[^}]*padding-left:24px!important;"
+                r"[^}]*padding-right:24px!important",
+                r"\.stack\{[^}]*display:block!important;[^}]*width:100%!important;"
+                r"[^}]*padding:8px0!important",
+            ),
+        }
+        for name, contracts in responsive_contracts.items():
+            compact = re.sub(
+                r"\s+", "", (root / name).read_text(encoding="utf-8")
+            )
+            self.assertIn("@media", compact)
+            for contract in contracts:
+                self.assertRegex(compact, contract)
+
+        for name in ("email-bienvenida.html", "email-preview.html"):
+            parser = EmailTableParser()
+            parser.feed((root / name).read_text(encoding="utf-8"))
+            pricing_tables = [table for table in parser.tables if table["has_th"]]
+            layout_tables = [table for table in parser.tables if not table["has_th"]]
+            self.assertTrue(pricing_tables)
+            self.assertTrue(
+                all(table["attrs"].get("role") != "presentation" for table in pricing_tables)
+            )
+            self.assertTrue(layout_tables)
+            self.assertTrue(
+                all(
+                    table["attrs"].get("role") == "presentation"
+                    for table in layout_tables
+                )
+            )
 
         chatbot = (root / "email-campana-chatbot-webapp.html").read_text(
             encoding="utf-8"
         )
         self.assertGreaterEqual(chatbot.count('class="stack cta-cell"'), 2)
-        self.assertIn(".cta-cell", chatbot)
+        self.assertRegex(
+            chatbot.replace(" ", ""),
+            r'\.cta-cell\{[^}]*display:block!important;[^}]*width:100%!important;'
+            r'[^}]*padding:0!important',
+        )
 
-        services = (root / "email-campana-servicios-inline.html").read_text(
-            encoding="utf-8"
-        ).split("<!-- Footer -->", 1)[1]
-        self.assertNotRegex(services, r"#(?:64748b|475569)")
+        footer_fragments = {
+            "email-campana-servicios-inline.html": (
+                root / "email-campana-servicios-inline.html"
+            ).read_text(encoding="utf-8").split("<!-- Footer -->", 1)[1],
+            "email-campana-suite-lite-inline.html": (
+                root / "email-campana-suite-lite-inline.html"
+            ).read_text(encoding="utf-8").rsplit(
+                '<tr><td class="section-padding"', 1
+            )[1],
+        }
+        for name, footer in footer_fragments.items():
+            background = re.search(
+                r"background(?:-color)?:\s*(#[0-9a-fA-F]{6})", footer
+            ).group(1)
+            foregrounds = re.findall(
+                r"(?<![-\w])color:\s*(#[0-9a-fA-F]{6})", footer
+            )
+            self.assertTrue(foregrounds)
+            for foreground in foregrounds:
+                with self.subTest(template=name, foreground=foreground):
+                    self.assertGreaterEqual(
+                        self._contrast_ratio(foreground, background), 4.5
+                    )
 
-        suite_lite = (root / "email-campana-suite-lite-inline.html").read_text(
-            encoding="utf-8"
-        ).rsplit('<tr><td class="section-padding"', 1)[1]
-        self.assertNotIn("#637a98", suite_lite)
+    @staticmethod
+    def _inline_style(source):
+        return {
+            property_name.strip().lower(): value.strip().lower()
+            for declaration in source.split(";")
+            if ":" in declaration
+            for property_name, value in (declaration.split(":", 1),)
+        }
+
+    @staticmethod
+    def _contrast_ratio(foreground, background):
+        def luminance(color):
+            channels = [int(color[index:index + 2], 16) / 255 for index in (1, 3, 5)]
+            linear = [
+                channel / 12.92
+                if channel <= 0.04045
+                else ((channel + 0.055) / 1.055) ** 2.4
+                for channel in channels
+            ]
+            return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+        light, dark = sorted((luminance(foreground), luminance(background)), reverse=True)
+        return (light + 0.05) / (dark + 0.05)
 
     def test_home_preserves_sections_and_contact_fields(self):
         response = self.client.get("/")

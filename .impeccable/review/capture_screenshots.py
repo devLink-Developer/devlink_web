@@ -7,6 +7,7 @@ PostgreSQL/Mongo data sources; no context value is written into production code.
 
 from __future__ import annotations
 
+import base64
 import json
 import os
 import re
@@ -36,6 +37,30 @@ from playwright.sync_api import sync_playwright
 OUTPUT = ROOT / ".impeccable" / "review"
 CSS_PATH = ROOT / "static" / "styles.css"
 CSS_TEXT = CSS_PATH.read_text(encoding="utf-8-sig")
+FONT_DIR = ROOT / "static" / "fonts"
+
+
+def capture_css() -> str:
+    """Inline self-hosted fonts because set_content has no URL base."""
+
+    css = CSS_TEXT
+    for filename in (
+        "ibm-plex-sans-regular.woff2",
+        "ibm-plex-sans-medium.woff2",
+        "ibm-plex-sans-semibold.woff2",
+        "ibm-plex-sans-bold.woff2",
+    ):
+        encoded = base64.b64encode((FONT_DIR / filename).read_bytes()).decode(
+            "ascii"
+        )
+        css = css.replace(
+            f'url("fonts/{filename}")',
+            f'url("data:font/woff2;base64,{encoded}")',
+        )
+    return css
+
+
+CAPTURE_CSS_TEXT = capture_css()
 
 
 @dataclass
@@ -378,7 +403,7 @@ def main() -> None:
                         # styles.css carries a UTF-8 BOM for legacy Windows
                         # compatibility. Decode it here so :root remains a valid
                         # inline selector and every design token resolves.
-                        page.add_style_tag(content=CSS_TEXT)
+                        page.add_style_tag(content=CAPTURE_CSS_TEXT)
                         page.add_style_tag(
                             content="""
                                 *, *::before, *::after {
@@ -395,16 +420,38 @@ def main() -> None:
 
                         measurements = page.evaluate(
                             """
-                            () => ({
-                                title: document.title,
-                                textLength: document.body.innerText.trim().length,
-                                scrollY: window.scrollY,
-                                bodyWidth: document.body.scrollWidth,
-                                documentWidth: document.documentElement.scrollWidth,
-                                viewportWidth: document.documentElement.clientWidth,
-                                documentHeight: document.documentElement.scrollHeight,
-                                background: getComputedStyle(document.body).backgroundColor,
-                            })
+                            () => {
+                                const heading = document.querySelector('h1, h2, h3');
+                                const headingStyle = heading
+                                    ? getComputedStyle(heading)
+                                    : null;
+                                const reportRefresh = document.querySelector('.report-refresh');
+                                const suiteProducts = document.querySelector('.suite-products');
+                                return {
+                                    title: document.title,
+                                    textLength: document.body.innerText.trim().length,
+                                    scrollY: window.scrollY,
+                                    bodyWidth: document.body.scrollWidth,
+                                    documentWidth: document.documentElement.scrollWidth,
+                                    viewportWidth: document.documentElement.clientWidth,
+                                    documentHeight: document.documentElement.scrollHeight,
+                                    background: getComputedStyle(document.body).backgroundColor,
+                                    headingFontFamily: headingStyle?.fontFamily ?? null,
+                                    headingFontLoaded: heading
+                                        ? document.fonts.check(
+                                            `${headingStyle.fontWeight} ${headingStyle.fontSize} "IBM Plex Sans"`,
+                                            heading.textContent,
+                                        )
+                                        : null,
+                                    reportRefreshHeight: reportRefresh
+                                        ? reportRefresh.getBoundingClientRect().height
+                                        : null,
+                                    suiteCollectionTag: suiteProducts?.tagName ?? null,
+                                    suiteProductNumberCount: document.querySelectorAll(
+                                        '.suite-product-number'
+                                    ).length,
+                                };
+                            }
                             """
                         )
                         if measurements["scrollY"] != 0:
@@ -413,6 +460,31 @@ def main() -> None:
                             raise RuntimeError(f"{surface['slug']} rendered as blank/wrong surface")
                         if measurements["background"] in {"rgb(0, 0, 0)", "#000000"}:
                             raise RuntimeError(f"{surface['slug']} rendered with black body")
+                        if not measurements["headingFontFamily"].startswith(
+                            '"IBM Plex Sans"'
+                        ):
+                            raise RuntimeError(
+                                f"{surface['slug']} did not compute IBM Plex Sans"
+                            )
+                        if not measurements["headingFontLoaded"]:
+                            raise RuntimeError(
+                                f"{surface['slug']} did not load IBM Plex Sans"
+                            )
+                        if (
+                            surface["slug"] == "client-report"
+                            and size_name == "mobile"
+                            and measurements["reportRefreshHeight"] > 96
+                        ):
+                            raise RuntimeError(
+                                "client-report mobile refresh panel exceeds 96px"
+                            )
+                        if surface["slug"] == "homepage" and (
+                            measurements["suiteCollectionTag"] != "UL"
+                            or measurements["suiteProductNumberCount"] != 0
+                        ):
+                            raise RuntimeError(
+                                "homepage Suite Lite semantics/numbers regressed"
+                            )
 
                         path = OUTPUT / f"{surface['slug']}-{size_name}.png"
                         page.screenshot(path=str(path), full_page=True)

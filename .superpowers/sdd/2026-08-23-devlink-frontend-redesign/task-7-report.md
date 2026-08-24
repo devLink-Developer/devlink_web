@@ -2,12 +2,13 @@
 
 ## Status
 
-Verification evidence and the single detector/mechanical-fix pass are complete. The controller-owned independent finish review and `DESIGN.md` remain intentionally pending under the binding ordering ruling. No reviewer/documenter was spawned and `DESIGN.md` was not created or modified.
+Verification evidence, the single detector/mechanical-fix pass, and the finish review's complete material-fix batch are complete. The controller-owned follow-up verdict from the same finish reviewer and `DESIGN.md` remain intentionally pending under the binding ordering ruling. `DESIGN.md` was not created or modified.
 
 ## Functional verification
 
 - Initial `python manage.py test -v 2`: PASS — 30 tests, 0 failures/errors, 52.355s. Playwright/installed-Chrome behavior tests ran rather than skipping.
 - Final post-fix `python manage.py test -v 2`: PASS — 30 tests, 0 failures/errors, 15.623s. Output ended with `OK` and `System check identified no issues (0 silenced)`.
+- Post-finish-review `python manage.py test -v 2`: PASS — 34 tests, 0 failures/errors, 12.555s. The four new contracts cover the canonical email logo, Suite Lite semantics/content/order, installed-Chrome font loading, and the client-report mobile panel.
 - Initial and final `python manage.py check`: PASS — `System check identified no issues (0 silenced)`.
 - `git diff --check`: clean (only Git's expected LF→CRLF working-copy notices were emitted).
 
@@ -48,7 +49,18 @@ Per-surface reviewed captures:
 - Admin user list: `admin-users-list-desktop.png`, `admin-users-list-mobile.png`
 - Admin user form: `admin-user-form-desktop.png`, `admin-user-form-mobile.png`
 
-Visual-inspection result: no blank, black, top-offset, or wrong-surface capture. Narrow report/admin tables remain inside their intended horizontal scroll containers on mobile; their partial off-screen columns do not create page-level overflow. The client report's mobile update-status panel has generous unused vertical space and should be evaluated by the controller's independent visual reviewer; it was not changed because this phase was restricted to detector-reported mechanical fixes.
+Post-finish-review visual-inspection result: all 20 regenerated PNGs were opened and inspected. No capture is blank, black, top-offset, clipped at page level, or on the wrong surface. Narrow report/admin tables remain inside their intended horizontal scroll containers on mobile; their partial off-screen columns do not create page-level overflow. The client-report update panel now measures `71.78125px` at both 1440px and 390px, eliminating the former 18rem mobile slab while preserving the desktop composition. Homepage evidence shows the Suite Lite collection as `UL` with zero decorative number nodes. Every manifest entry records a computed heading family beginning with `IBM Plex Sans`, a loaded matching font face, zero horizontal overflow, and zero console errors.
+
+## Finish-review material fix batch
+
+Applied all four findings together without rerunning the detector:
+
+- **Type:** self-hosted unmodified complete WOFF2 builds for IBM Plex Sans 400/500/600/700 from IBM's pinned `@ibm/plex-sans@1.1.0` package. The full OFL and exact source/version/SHA-256 record ship beside the fonts. Installed Chrome loaded the bold face for a Spanish heading and computed `IBM Plex Sans` first with no third-party request.
+- **Responsive:** retained the report panel's 18rem flex basis on desktop, scoped the later admin override, and reset the portal report panel to content height inside the mobile column. Real-Chrome regression coverage and capture metrics hold it below the requested 96px limit.
+- **Truth/finish:** every `alt="devLink"` email raster now uses the single absolute URL `https://devlink.com.ar/static/images/devlink-logo-email.png`; all Pinterest and former external WebP email references are gone. The asset provenance scan reports `SCAN: 1 raster, 0 missing`.
+- **Floor:** Suite Lite is now an unordered collection with the decorative 01–06 nodes and their unused CSS removed. Product names, descriptions, order, section/link targets, and genuine methodology numbering are unchanged.
+
+The capture harness now embeds the shipping self-hosted font binaries only for its `set_content` review environment (which has no URL base), waits for `document.fonts`, and fails on wrong family/loading, Suite Lite regressions, mobile report height above 96px, page overflow, blank/black output, or top offset.
 
 ## Impeccable detector
 
@@ -276,5 +288,5 @@ Because the detector could not be rerun under the one-run rule, targeted source 
 
 - Detector coverage is degraded/regex-only due missing parser modules; its 19 warnings are not a complete computed-style/accessibility audit.
 - Live route serving remains blocked by the configured remote PostgreSQL migration check; the controlled Chrome render path is fully documented and reproducible.
-- The independent finish verdict and `DESIGN.md` are still required after this evidence commit and are intentionally left to the controller.
+- The same independent finish reviewer must score this material-fix batch; `DESIGN.md` remains required only after that verdict and is intentionally left to the controller/documenter.
 - No production content, routes, database behavior, permissions, forms, or template conditions were fabricated or changed by this phase.

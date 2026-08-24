@@ -135,6 +135,16 @@ class FrontendContractTests(SimpleTestCase):
             source = (root / name).read_text(encoding="utf-8")
             self.assertIn("devLink", source)
             self.assertIn('href="mailto:info@devlink.com.ar"', source)
+            logo_sources = re.findall(
+                r'<img\b(?=[^>]*\balt="devLink")[^>]*\bsrc="([^"]+)"',
+                source,
+            )
+            self.assertTrue(logo_sources)
+            self.assertEqual(
+                set(logo_sources),
+                {"https://devlink.com.ar/static/images/devlink-logo-email.png"},
+            )
+            self.assertNotIn("i.pinimg.com", source)
             for color in ("#07162d", "#1264f6", "#06d6ff"):
                 self.assertIn(color, source.lower())
             hrefs = re.findall(r'href="([^"]+)"', source)
@@ -397,6 +407,57 @@ class FrontendContractTests(SimpleTestCase):
         for attribute in ("data-header", "data-nav-toggle", "data-nav"):
             self.assertIn(attribute, source)
 
+    def test_suite_lite_collection_is_unordered_and_preserves_content(self):
+        source = (
+            Path(settings.BASE_DIR) / "templates" / "index.html"
+        ).read_text(encoding="utf-8")
+        suite = source.split('id="suite-lite"', 1)[1].split(
+            'id="soluciones"', 1
+        )[0]
+        products = (
+            (
+                "Lite-POS",
+                "Un punto de venta sólido para agilizar la atención, controlar "
+                "cada operación y trabajar integrado con SAP.",
+            ),
+            (
+                "Lite-Core",
+                "El centro de administración del POS para mantener productos, "
+                "precios, usuarios y datos bajo control.",
+            ),
+            (
+                "Lite-Logistic",
+                "Gestión de transporte y depósitos para organizar inventario, "
+                "movimientos, entregas y recorridos.",
+            ),
+            (
+                "Lite-eCommerce",
+                "Una tienda online conectada con tus productos, precios, pedidos "
+                "y disponibilidad para vender sin duplicar tareas.",
+            ),
+            (
+                "Lite-Flow",
+                "El puente que permite intercambiar información entre SAP, Suite "
+                "Lite y los demás sistemas de tu empresa.",
+            ),
+            (
+                "Lite-CRM",
+                "Seguimiento simple de clientes, contactos y oportunidades para "
+                "ordenar la actividad comercial.",
+            ),
+        )
+
+        self.assertIn('<ul class="suite-products">', suite)
+        self.assertNotIn('<ol class="suite-products">', suite)
+        self.assertNotIn("suite-product-number", suite)
+        self.assertIn('<ol class="process-steps">', source)
+        positions = []
+        for product, copy in products:
+            self.assertIn(product, suite)
+            self.assertIn(copy, suite)
+            positions.append(suite.index(product))
+        self.assertEqual(positions, sorted(positions))
+
     def test_mobile_navigation_supports_escape_dismissal(self):
         source = (
             Path(settings.BASE_DIR) / "templates" / "index.html"
@@ -463,6 +524,156 @@ class FrontendContractTests(SimpleTestCase):
         self.assertIn("{% load static %}", source)
         self.assertIn("{% static 'styles.css' %}", source)
         self.assertIn("DevLink", source)
+
+    def test_self_hosted_ibm_plex_assets_and_css_contract(self):
+        root = Path(settings.BASE_DIR)
+        fonts = root / "static" / "fonts"
+        expected_fonts = {
+            "ibm-plex-sans-regular.woff2": "400",
+            "ibm-plex-sans-medium.woff2": "500",
+            "ibm-plex-sans-semibold.woff2": "600",
+            "ibm-plex-sans-bold.woff2": "700",
+        }
+        css = (root / "static" / "styles.css").read_text(
+            encoding="utf-8-sig"
+        )
+
+        for filename, weight in expected_fonts.items():
+            with self.subTest(font=filename):
+                path = fonts / filename
+                self.assertTrue(path.is_file())
+                self.assertGreater(path.stat().st_size, 50_000)
+                self.assertRegex(
+                    css,
+                    rf'(?s)@font-face\s*\{{(?:(?!\}}).)*'
+                    rf'url\("fonts/{re.escape(filename)}"\)'
+                    rf'(?:(?!\}}).)*font-weight:\s*{weight};'
+                    rf'(?:(?!\}}).)*font-display:\s*swap;',
+                )
+
+        body_rule = css.split("body {", 1)[1].split("}", 1)[0]
+        self.assertIn(
+            'font-family: "IBM Plex Sans", "Segoe UI", ui-sans-serif, '
+            "system-ui, sans-serif;",
+            body_rule,
+        )
+        self.assertNotRegex(
+            "\n".join(
+                line
+                for line in css.splitlines()
+                if "@font-face" in line or "src:" in line
+            ),
+            r"https?://",
+        )
+
+        license_text = (fonts / "OFL.txt").read_text(encoding="utf-8")
+        self.assertIn(
+            'Copyright © 2017 IBM Corp. with Reserved Font Name "Plex"',
+            license_text,
+        )
+        self.assertIn("SIL OPEN FONT LICENSE Version 1.1", license_text)
+        self.assertIn("5) The Font Software", license_text)
+        self.assertIn("DISCLAIMER", license_text)
+
+        source = (fonts / "SOURCE.md").read_text(encoding="utf-8")
+        self.assertIn("@ibm/plex-sans@1.1.0", source)
+        for filename in expected_fonts:
+            self.assertIn(filename, source)
+
+    def test_installed_chrome_uses_self_hosted_ibm_plex_for_heading(self):
+        try:
+            from playwright.sync_api import Error as PlaywrightError
+            from playwright.sync_api import sync_playwright
+        except ImportError:
+            self.skipTest("Playwright is not installed")
+
+        root = Path(settings.BASE_DIR)
+        css = (root / "static" / "styles.css").read_text(
+            encoding="utf-8-sig"
+        )
+        fonts = root / "static" / "fonts"
+        requests = []
+
+        def fulfill_devlink_asset(route):
+            requests.append(route.request.url)
+            path = urlparse(route.request.url).path
+            if path == "/":
+                route.fulfill(
+                    status=200,
+                    content_type="text/html",
+                    body=(
+                        '<!doctype html><html lang="es"><head>'
+                        '<link rel="stylesheet" href="/static/styles.css">'
+                        "</head><body><h1>Tecnología, solución ágil e "
+                        "información para la acción</h1></body></html>"
+                    ),
+                )
+            elif path == "/static/styles.css":
+                route.fulfill(status=200, content_type="text/css", body=css)
+            elif path.startswith("/static/fonts/"):
+                font_path = fonts / Path(path).name
+                route.fulfill(
+                    status=200,
+                    content_type="font/woff2",
+                    body=font_path.read_bytes(),
+                )
+            else:
+                route.abort()
+
+        with sync_playwright() as playwright:
+            try:
+                browser = playwright.chromium.launch(
+                    channel="chrome", headless=True
+                )
+            except PlaywrightError:
+                try:
+                    browser = playwright.chromium.launch(headless=True)
+                except PlaywrightError as error:
+                    self.skipTest(
+                        f"No Chromium-compatible browser available: {error}"
+                    )
+
+            try:
+                page = browser.new_page(viewport={"width": 1440, "height": 900})
+                page.route("https://devlink.test/**", fulfill_devlink_asset)
+                page.goto("https://devlink.test/", wait_until="networkidle")
+                page.evaluate("document.fonts.ready")
+
+                heading = page.locator("h1")
+                font_family = heading.evaluate(
+                    "element => getComputedStyle(element).fontFamily"
+                )
+                loaded = heading.evaluate(
+                    "element => document.fonts.check("
+                    "'700 32px \\\"IBM Plex Sans\\\"', element.textContent)"
+                )
+                font_faces = page.evaluate(
+                    "[...document.fonts].map(face => ({family: face.family, "
+                    "weight: face.weight, status: face.status}))"
+                )
+                self.assertEqual(
+                    font_family.split(",", 1)[0].strip().strip('"'),
+                    "IBM Plex Sans",
+                )
+                self.assertTrue(loaded)
+                self.assertTrue(
+                    any(
+                        face["family"] == "IBM Plex Sans"
+                        and face["weight"] == "700"
+                        and face["status"] == "loaded"
+                        for face in font_faces
+                    ),
+                    font_faces,
+                )
+                self.assertTrue(
+                    any("ibm-plex-sans-bold.woff2" in url for url in requests),
+                    {"requests": requests, "fontFaces": font_faces},
+                )
+                self.assertTrue(
+                    all(urlparse(url).hostname == "devlink.test" for url in requests)
+                )
+            finally:
+                browser.close()
 
     def test_styles_expose_brand_and_accessibility_tokens(self):
         css = (
@@ -783,6 +994,64 @@ class FrontendContractTests(SimpleTestCase):
         )
         self.assertIn(".product-item__copy > p {", css)
         self.assertIn("overflow-wrap: anywhere;", css)
+
+    def test_report_refresh_shrink_wraps_on_mobile_in_chrome(self):
+        try:
+            from playwright.sync_api import Error as PlaywrightError
+            from playwright.sync_api import sync_playwright
+        except ImportError:
+            self.skipTest("Playwright is not installed")
+
+        css = (Path(settings.BASE_DIR) / "static" / "styles.css").read_text(
+            encoding="utf-8-sig"
+        )
+        harness = """
+            <body class="portal-page">
+                <div class="page-heading page-heading--report">
+                    <div><h1>Estadísticas de WhatsApp</h1>
+                    <p>Análisis de las interacciones con tu chatbot</p></div>
+                    <div class="report-refresh" aria-label="Estado de actualización">
+                        <p>Última actualización: <strong>24/08/2026 02:15</strong></p>
+                        <p>Actualización automática cada 3 minutos</p>
+                    </div>
+                </div>
+            </body>
+        """
+
+        with sync_playwright() as playwright:
+            try:
+                browser = playwright.chromium.launch(
+                    channel="chrome", headless=True
+                )
+            except PlaywrightError:
+                try:
+                    browser = playwright.chromium.launch(headless=True)
+                except PlaywrightError as error:
+                    self.skipTest(
+                        f"No Chromium-compatible browser available: {error}"
+                    )
+
+            try:
+                for viewport in (
+                    {"width": 1440, "height": 900},
+                    {"width": 390, "height": 844},
+                ):
+                    with self.subTest(viewport=viewport["width"]):
+                        page = browser.new_page(viewport=viewport)
+                        try:
+                            page.set_content(harness)
+                            page.add_style_tag(content=css)
+                            panel = page.locator(".report-refresh")
+                            self.assertLessEqual(panel.bounding_box()["height"], 96)
+                            overflow = page.evaluate(
+                                "document.documentElement.scrollWidth - "
+                                "document.documentElement.clientWidth"
+                            )
+                            self.assertLessEqual(overflow, 0)
+                        finally:
+                            page.close()
+            finally:
+                browser.close()
 
     def test_admin_templates_extend_shared_base_and_keep_csrf(self):
         root = Path(settings.BASE_DIR) / "templates" / "admin_panel"

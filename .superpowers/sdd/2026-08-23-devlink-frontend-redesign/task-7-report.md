@@ -2,7 +2,7 @@
 
 ## Status
 
-Verification evidence, the single detector/mechanical-fix pass, and the finish review's complete material-fix batch are complete. The controller-owned follow-up verdict from the same finish reviewer and `DESIGN.md` remain intentionally pending under the binding ordering ruling. `DESIGN.md` was not created or modified.
+Task 7 is complete. Verification evidence, the single detector/mechanical-fix pass, the finish review's complete material-fix batch, the same-reviewer follow-up verdict, and design-system documentation have all landed. The final independent verdict is **pass** with no material findings left open. `DESIGN.md` and its `.impeccable/design.json` sidecar were committed in `a1bde4d` after that reviewed result.
 
 ## Functional verification
 
@@ -20,7 +20,7 @@ Public and authenticated evidence therefore uses Django's real `render_to_string
 
 ## Screenshot evidence
 
-Capture engine: installed Chrome through Playwright. Desktop viewport: 1440×900. Mobile viewport: 390×844. Every context emulated reduced motion, disabled residual animation/transition during capture, scrolled to `0`, waited for fonts, captured full page, and validated non-trivial text plus a non-black background. The final 20 PNGs were each opened and visually inspected once after the mechanical fixes.
+Capture engine: installed Chrome through Playwright. Desktop viewport: 1440×900. Mobile viewport: 390×844. Every context emulated reduced motion, disabled residual animation/transition during capture, scrolled to `0`, waited for fonts, captured full page, and validated non-trivial text plus a non-black background. The final 20 PNGs were each opened and visually inspected once after the finish-review material fixes.
 
 Automated manifest: `.impeccable/review/capture-manifest.json` (18 entries). Every entry records:
 
@@ -61,6 +61,25 @@ Applied all four findings together without rerunning the detector:
 - **Floor:** Suite Lite is now an unordered collection with the decorative 01–06 nodes and their unused CSS removed. Product names, descriptions, order, section/link targets, and genuine methodology numbering are unchanged.
 
 The capture harness now embeds the shipping self-hosted font binaries only for its `set_content` review environment (which has no URL base), waits for `document.fonts`, and fails on wrong family/loading, Suite Lite regressions, mobile report height above 96px, page overflow, blank/black output, or top offset.
+
+## Independent finish verdict
+
+The same independent finish reviewer re-evaluated the complete material-fix batch and returned **pass**. Every requested category was resolved with reviewed evidence:
+
+- **TYPE — resolved:** IBM Plex Sans is self-hosted from the pinned IBM package with four required complete WOFF2 weights, the full OFL, exact origins and SHA-256 values. Installed Chrome computed `IBM Plex Sans` first, loaded the matching face for Spanish heading copy, and every final capture recorded the same loaded family without page overflow.
+- **RESPONSIVE — resolved:** the client-report update panel shrink-wraps to `71.78125px` at 390px, below the 96px ceiling, while the 1440px capture remains `71.78125px` and preserves the approved desktop composition.
+- **TRUTH/FINISH — resolved:** all six shipping email-logo references use the one DevLink-controlled PNG URL, no Pinterest or former external WebP email dependency remains, and the final provenance scan reports `SCAN: 1 raster, 0 missing`.
+- **FLOOR — resolved:** Suite Lite is a semantic unordered collection, contains zero decorative number nodes, and retains every product name, description and order. The genuine methodology sequence remains an ordered list.
+
+The reviewer retained the approved visual world: white/cool-gray working fields, navy structure, electric-blue actions, restrained cyan signals, the split marketing hero with its dark capability map, crisp one-pixel rules, and softly elevated 16px panels.
+
+## Design-system documentation completion
+
+Commit `a1bde4d` (`docs: capture reviewed design system`) completed the finish contract after the pass verdict:
+
+- `DESIGN.md` records the reviewed ground truth for palette, IBM Plex typography, spacing, radii, elevation, motion, responsive behavior, accessibility, emails, and reusable component patterns.
+- `.impeccable/design.json` parses successfully as schema version `2`, title `Design System: devLink`, with 10 component examples and 6 system rules.
+- The generated artifact documents the implemented system only; it introduces no production content, route, form, permission, or behavior change.
 
 ## Impeccable detector
 
@@ -284,9 +303,10 @@ Applied once with `apply_patch`; detector was not rerun afterward.
 
 Because the detector could not be rerun under the one-run rule, targeted source checks were used only to confirm removal of the exact mechanical patterns. Post-fix `rg` checks found no 3–4px left/right accents, no transition declaration animating padding/width/height/margin, and none of the detector-flagged Arial/Inter declarations in `templates` or `static/styles.css`.
 
-## Concerns and handoff
+## Remaining non-blocking environment caveats
 
 - Detector coverage is degraded/regex-only due missing parser modules; its 19 warnings are not a complete computed-style/accessibility audit.
 - Live route serving remains blocked by the configured remote PostgreSQL migration check; the controlled Chrome render path is fully documented and reproducible.
-- The same independent finish reviewer must score this material-fix batch; `DESIGN.md` remains required only after that verdict and is intentionally left to the controller/documenter.
+- The detector was intentionally not rerun after its single permitted invocation; focused source contracts, installed-Chrome assertions, the regenerated manifest, and the same-reviewer pass provide the post-fix evidence.
 - No production content, routes, database behavior, permissions, forms, or template conditions were fabricated or changed by this phase.
+- No Task 7 implementation, review, or documentation blocker remains.

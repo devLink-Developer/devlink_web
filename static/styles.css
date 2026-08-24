@@ -5222,9 +5222,6 @@ textarea::placeholder {
     height: 2.25rem;
   }
 
-  .table-actions .button span {
-    display: none;
-  }
 }
 
 

@@ -36,7 +36,7 @@
                             {% endif %}
                             {% if product.status == 'active' %}<span class="status-badge status-badge--active"><i class="fas fa-circle-check" aria-hidden="true"></i> {{ product.get_status_display }}</span>{% endif %}
                         </td>
-                        <td data-label="Acciones"><div class="table-actions"><a href="/admin-panel/products/{{ product.id }}/edit/" class="button button--small button--quiet"><i class="fas fa-edit" aria-hidden="true"></i><span>Editar</span></a><a href="/admin-panel/products/{{ product.id }}/delete/" class="button button--small button--danger-outline"><i class="fas fa-trash" aria-hidden="true"></i><span>Eliminar</span></a></div></td>
+                        <td data-label="Acciones"><div class="table-actions"><a href="/admin-panel/products/{{ product.id }}/edit/" class="button button--small button--quiet" aria-label="Editar producto {{ product.name }}"><i class="fas fa-edit" aria-hidden="true"></i><span>Editar</span></a><a href="/admin-panel/products/{{ product.id }}/delete/" class="button button--small button--danger-outline" aria-label="Eliminar producto {{ product.name }}"><i class="fas fa-trash" aria-hidden="true"></i><span>Eliminar</span></a></div></td>
                     </tr>
                     {% empty %}
                     <tr><td colspan="5"><div class="empty-state">{% if search_query %}No se encontraron productos que coincidan con "{{ search_query }}"{% else %}No hay productos registrados{% endif %}</div></td></tr>

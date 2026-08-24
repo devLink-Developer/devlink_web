@@ -27,18 +27,102 @@
             {% for client_product in user_products %}<article class="admin-product-row admin-product-row--compact"><div class="table-primary"><span class="table-avatar" aria-hidden="true"><i class="fas fa-box"></i></span><span><strong>{{ client_product.product.name }}</strong><small>{{ client_product.product.get_product_type_display }}</small></span></div><div>{% if client_product.status == 'active' %}<span class="status-badge status-badge--active"><i class="fas fa-circle-check" aria-hidden="true"></i> {{ client_product.get_status_display }}</span>{% elif client_product.status == 'suspended' %}<span class="status-badge status-badge--development"><i class="fas fa-pause" aria-hidden="true"></i> {{ client_product.get_status_display }}</span>{% elif client_product.status == 'cancelled' %}<span class="status-badge status-badge--suspended"><i class="fas fa-ban" aria-hidden="true"></i> {{ client_product.get_status_display }}</span>{% else %}<span class="status-badge"><i class="fas fa-code-branch" aria-hidden="true"></i> {{ client_product.get_status_display }}</span>{% endif %}<small class="admin-product-date">Desde: {{ client_product.start_date|date:"d/m/Y" }}</small></div><div class="table-actions"><button type="button" onclick="editProductStatus({{ client_product.id }}, '{{ client_product.status }}')" class="button button--small button--quiet" aria-label="Cambiar estado de {{ client_product.product.name }}"><i class="fas fa-edit" aria-hidden="true"></i> Estado</button><button type="button" onclick="removeProduct({{ client_product.id }})" class="button button--small button--danger-outline" aria-label="Eliminar {{ client_product.product.name }}"><i class="fas fa-trash" aria-hidden="true"></i> Eliminar</button></div></article>{% empty %}<div class="empty-state"><i class="fas fa-inbox" aria-hidden="true"></i><p>No hay productos asignados</p></div>{% endfor %}
         </div></section>
     </main>
-    <div id="addProductModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="add-product-title"><div class="modal-content"><div class="modal-heading"><h2 id="add-product-title" class="modal-header">Agregar Producto</h2><button type="button" onclick="hideAddProductModal()" class="button button--quiet button--small" aria-label="Cerrar"><i class="fas fa-times" aria-hidden="true"></i></button></div><form id="addProductForm" method="post" action="{% url 'admin_panel:add_user_product' user_obj.id %}" class="form-grid">{% csrf_token %}<div class="field-group field-group--wide"><label for="product_id">Producto</label><select name="product_id" id="product_id" required class="field"><option value="">Seleccionar producto...</option>{% for product in available_products %}<option value="{{ product.id }}">{{ product.name }} ({{ product.get_product_type_display }})</option>{% endfor %}</select></div><div class="field-group field-group--wide"><label for="status">Estado</label><select name="status" id="status" required class="field"><option value="active">Activo</option><option value="development">En Desarrollo</option><option value="suspended">Suspendido</option></select></div><div class="form-actions"><button type="button" onclick="hideAddProductModal()" class="button button--secondary">Cancelar</button><button type="submit" class="button button--primary">Agregar</button></div></form></div></div>
-    <div id="editStatusModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="edit-status-title"><div class="modal-content"><div class="modal-heading"><h2 id="edit-status-title" class="modal-header">Cambiar Estado</h2><button type="button" onclick="hideEditStatusModal()" class="button button--quiet button--small" aria-label="Cerrar"><i class="fas fa-times" aria-hidden="true"></i></button></div><form id="editStatusForm" method="post" class="form-grid">{% csrf_token %}<input type="hidden" id="client_product_id" name="client_product_id"><div class="field-group field-group--wide"><label for="new_status">Nuevo Estado</label><select name="status" id="new_status" required class="field"><option value="active">Activo</option><option value="development">En Desarrollo</option><option value="suspended">Suspendido</option><option value="cancelled">Cancelado</option></select></div><div class="form-actions"><button type="button" onclick="hideEditStatusModal()" class="button button--secondary">Cancelar</button><button type="submit" class="button button--primary">Actualizar</button></div></form></div></div>
+    <div id="addProductModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="add-product-title" aria-hidden="true"><div class="modal-content"><div class="modal-heading"><h2 id="add-product-title" class="modal-header">Agregar Producto</h2><button type="button" onclick="hideAddProductModal()" class="button button--quiet button--small" aria-label="Cerrar"><i class="fas fa-times" aria-hidden="true"></i></button></div><form id="addProductForm" method="post" action="{% url 'admin_panel:add_user_product' user_obj.id %}" class="form-grid">{% csrf_token %}<div class="field-group field-group--wide"><label for="product_id">Producto</label><select name="product_id" id="product_id" required class="field"><option value="">Seleccionar producto...</option>{% for product in available_products %}<option value="{{ product.id }}">{{ product.name }} ({{ product.get_product_type_display }})</option>{% endfor %}</select></div><div class="field-group field-group--wide"><label for="status">Estado</label><select name="status" id="status" required class="field"><option value="active">Activo</option><option value="development">En Desarrollo</option><option value="suspended">Suspendido</option></select></div><div class="form-actions"><button type="button" onclick="hideAddProductModal()" class="button button--secondary">Cancelar</button><button type="submit" class="button button--primary">Agregar</button></div></form></div></div>
+    <div id="editStatusModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="edit-status-title" aria-hidden="true"><div class="modal-content"><div class="modal-heading"><h2 id="edit-status-title" class="modal-header">Cambiar Estado</h2><button type="button" onclick="hideEditStatusModal()" class="button button--quiet button--small" aria-label="Cerrar"><i class="fas fa-times" aria-hidden="true"></i></button></div><form id="editStatusForm" method="post" class="form-grid">{% csrf_token %}<input type="hidden" id="client_product_id" name="client_product_id"><div class="field-group field-group--wide"><label for="new_status">Nuevo Estado</label><select name="status" id="new_status" required class="field"><option value="active">Activo</option><option value="development">En Desarrollo</option><option value="suspended">Suspendido</option><option value="cancelled">Cancelado</option></select></div><div class="form-actions"><button type="button" onclick="hideEditStatusModal()" class="button button--secondary">Cancelar</button><button type="submit" class="button button--primary">Actualizar</button></div></form></div></div>
     <script>
-        function showAddProductModal() { document.getElementById('addProductModal').classList.add('active'); }
-        function hideAddProductModal() { document.getElementById('addProductModal').classList.remove('active'); }
-        function editProductStatus(clientProductId, currentStatus) {
+        let activeProductDialog = null;
+        let productDialogOpener = null;
+        const productDialogFocusable = 'a[href], button:not([disabled]), input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+        function openProductDialog(dialog, initialFocus, trigger) {
+            activeProductDialog = dialog;
+            productDialogOpener = trigger || document.activeElement;
+            dialog.classList.add('active');
+            dialog.setAttribute('aria-hidden', 'false');
+            initialFocus.focus();
+        }
+
+        function closeProductDialog(dialog) {
+            if (!dialog.classList.contains('active')) {
+                return;
+            }
+
+            const opener = productDialogOpener;
+            if (opener && opener.isConnected) {
+                opener.focus({ preventScroll: true });
+            }
+            dialog.classList.remove('active');
+            dialog.setAttribute('aria-hidden', 'true');
+            if (activeProductDialog === dialog) {
+                activeProductDialog = null;
+                productDialogOpener = null;
+            }
+        }
+
+        function showAddProductModal(trigger) {
+            openProductDialog(
+                document.getElementById('addProductModal'),
+                document.getElementById('product_id'),
+                trigger
+            );
+        }
+
+        function hideAddProductModal() {
+            closeProductDialog(document.getElementById('addProductModal'));
+        }
+
+        function editProductStatus(clientProductId, currentStatus, trigger) {
             document.getElementById('client_product_id').value = clientProductId;
             document.getElementById('new_status').value = currentStatus;
             document.getElementById('editStatusForm').action = `/admin-panel/users/{{ user_obj.id }}/product-status/`;
-            document.getElementById('editStatusModal').classList.add('active');
+            openProductDialog(
+                document.getElementById('editStatusModal'),
+                document.getElementById('new_status'),
+                trigger
+            );
         }
-        function hideEditStatusModal() { document.getElementById('editStatusModal').classList.remove('active'); }
+
+        function hideEditStatusModal() {
+            closeProductDialog(document.getElementById('editStatusModal'));
+        }
+
+        document.querySelectorAll('.modal').forEach((dialog) => {
+            dialog.addEventListener('click', (event) => {
+                if (event.target === dialog) {
+                    closeProductDialog(dialog);
+                }
+            });
+
+            dialog.addEventListener('keydown', (event) => {
+                if (event.key !== 'Tab' || !dialog.classList.contains('active')) {
+                    return;
+                }
+
+                const focusable = Array.from(dialog.querySelectorAll(productDialogFocusable))
+                    .filter((element) => element.getClientRects().length > 0);
+                const first = focusable[0];
+                const last = focusable[focusable.length - 1];
+                if (!first || !last) {
+                    return;
+                }
+
+                if (event.shiftKey && document.activeElement === first) {
+                    event.preventDefault();
+                    last.focus();
+                } else if (!event.shiftKey && document.activeElement === last) {
+                    event.preventDefault();
+                    first.focus();
+                }
+            });
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && activeProductDialog?.classList.contains('active')) {
+                event.preventDefault();
+                closeProductDialog(activeProductDialog);
+            }
+        });
+
         function removeProduct(clientProductId) {
             if (confirm('¿Estás seguro de que quieres eliminar este producto del cliente?')) {
                 const form = document.createElement('form');

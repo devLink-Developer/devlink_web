@@ -528,3 +528,162 @@ class FrontendContractTests(SimpleTestCase):
             ".status-badge",
         ):
             self.assertIn(selector, css)
+
+    def test_admin_mobile_table_actions_keep_accessible_names(self):
+        try:
+            from playwright.sync_api import Error as PlaywrightError
+            from playwright.sync_api import sync_playwright
+        except ImportError:
+            self.skipTest("Playwright is not installed")
+
+        css = (
+            Path(settings.BASE_DIR) / "static" / "styles.css"
+        ).read_text(encoding="utf-8-sig")
+        harness = """
+            <div class="table-actions">
+                <a href="#products" class="button"><i aria-hidden="true"></i><span>Productos</span></a>
+                <a href="#edit" class="button"><i aria-hidden="true"></i><span>Editar</span></a>
+                <a href="#view" class="button"><i aria-hidden="true"></i><span>Ver</span></a>
+                <a href="#report" class="button"><i aria-hidden="true"></i><span>Reporte</span></a>
+                <button type="button" class="button"><i aria-hidden="true"></i><span>Estado</span></button>
+                <button type="button" class="button"><i aria-hidden="true"></i><span>Eliminar</span></button>
+            </div>
+        """
+
+        with sync_playwright() as playwright:
+            try:
+                browser = playwright.chromium.launch(channel="chrome", headless=True)
+            except PlaywrightError:
+                try:
+                    browser = playwright.chromium.launch(headless=True)
+                except PlaywrightError as error:
+                    self.skipTest(f"No Chromium-compatible browser available: {error}")
+
+            try:
+                page = browser.new_page(viewport={"width": 390, "height": 844})
+                page.set_content(harness)
+                page.add_style_tag(content=css)
+
+                for name in ("Productos", "Editar", "Ver", "Reporte"):
+                    with self.subTest(control=name):
+                        self.assertEqual(page.get_by_role("link", name=name).count(), 1)
+                for name in ("Estado", "Eliminar"):
+                    with self.subTest(control=name):
+                        self.assertEqual(page.get_by_role("button", name=name).count(), 1)
+            finally:
+                browser.close()
+
+    def test_admin_product_dialogs_manage_keyboard_focus(self):
+        try:
+            from playwright.sync_api import Error as PlaywrightError
+            from playwright.sync_api import sync_playwright
+        except ImportError:
+            self.skipTest("Playwright is not installed")
+
+        root = Path(settings.BASE_DIR) / "templates" / "admin_panel"
+
+        with sync_playwright() as playwright:
+            try:
+                browser = playwright.chromium.launch(channel="chrome", headless=True)
+            except PlaywrightError:
+                try:
+                    browser = playwright.chromium.launch(headless=True)
+                except PlaywrightError as error:
+                    self.skipTest(f"No Chromium-compatible browser available: {error}")
+
+            try:
+                for name in ("user_edit.html", "user_products.html"):
+                    source = (root / name).read_text(encoding="utf-8")
+                    script = source.rsplit("<script>", 1)[1].split("</script>", 1)[0]
+                    harness = """
+                        <button id="add-trigger" type="button" onclick="showAddProductModal()">Agregar Producto</button>
+                        <button id="edit-trigger" type="button" onclick="editProductStatus(7, 'active')">Cambiar Estado</button>
+                        <button id="outside-control" type="button">Fuera de los diálogos</button>
+                        <div id="addProductModal" class="modal" aria-hidden="true">
+                            <button id="add-close" type="button" onclick="hideAddProductModal()">Cerrar</button>
+                            <form id="addProductForm">
+                                <select id="product_id"><option value="1">Producto</option></select>
+                                <select id="status"><option value="active">Activo</option></select>
+                                <button id="add-cancel" type="button" onclick="hideAddProductModal()">Cancelar</button>
+                                <button id="add-submit" type="submit">Agregar</button>
+                            </form>
+                        </div>
+                        <div id="editStatusModal" class="modal" aria-hidden="true">
+                            <button id="edit-close" type="button" onclick="hideEditStatusModal()">Cerrar</button>
+                            <form id="editStatusForm">
+                                <input type="hidden" id="client_product_id" name="client_product_id">
+                                <select id="new_status"><option value="active">Activo</option></select>
+                                <button id="edit-cancel" type="button" onclick="hideEditStatusModal()">Cancelar</button>
+                                <button id="edit-submit" type="submit">Actualizar</button>
+                            </form>
+                        </div>
+                        <script>
+                    """ + script + "</script>"
+
+                    page = browser.new_page()
+                    try:
+                        page.set_content(harness)
+                        page.evaluate("""
+                            window.focusAtDialogHide = [];
+                            for (const dialog of document.querySelectorAll('.modal')) {
+                                new MutationObserver(() => {
+                                    if (!dialog.classList.contains('active')) {
+                                        window.focusAtDialogHide.push(document.activeElement.id);
+                                    }
+                                }).observe(dialog, { attributes: true, attributeFilter: ['class'] });
+                            }
+                        """)
+
+                        page.locator("#add-trigger").click()
+                        self.assertTrue(page.locator("#product_id").evaluate("el => document.activeElement === el"))
+                        self.assertEqual(page.locator("#addProductModal").get_attribute("aria-hidden"), "false")
+
+                        page.locator("#add-submit").focus()
+                        page.keyboard.press("Tab")
+                        self.assertTrue(page.locator("#add-close").evaluate("el => document.activeElement === el"))
+                        page.keyboard.press("Shift+Tab")
+                        self.assertTrue(page.locator("#add-submit").evaluate("el => document.activeElement === el"))
+
+                        page.keyboard.press("Escape")
+                        self.assertTrue(page.locator("#add-trigger").evaluate("el => document.activeElement === el"))
+                        self.assertEqual(page.locator("#addProductModal").get_attribute("aria-hidden"), "true")
+                        self.assertEqual(page.evaluate("window.focusAtDialogHide.at(-1)"), "add-trigger")
+
+                        page.locator("#outside-control").click()
+                        page.keyboard.press("Escape")
+                        self.assertTrue(page.locator("#outside-control").evaluate("el => document.activeElement === el"))
+
+                        page.locator("#edit-trigger").click()
+                        self.assertTrue(page.locator("#new_status").evaluate("el => document.activeElement === el"))
+                        page.keyboard.press("Escape")
+                        self.assertTrue(page.locator("#edit-trigger").evaluate("el => document.activeElement === el"))
+                        self.assertEqual(page.locator("#editStatusModal").get_attribute("aria-hidden"), "true")
+                        self.assertEqual(page.evaluate("window.focusAtDialogHide.at(-1)"), "edit-trigger")
+                    finally:
+                        page.close()
+            finally:
+                browser.close()
+
+    def test_admin_table_actions_name_their_row_context(self):
+        root = Path(settings.BASE_DIR) / "templates" / "admin_panel"
+        expectations = {
+            "users_list.html": (
+                'aria-label="Gestionar productos de {{ user_obj.username }}"',
+                'aria-label="Editar usuario {{ user_obj.username }}"',
+                'aria-label="Eliminar usuario {{ user_obj.username }}"',
+            ),
+            "products_list.html": (
+                'aria-label="Editar producto {{ product.name }}"',
+                'aria-label="Eliminar producto {{ product.name }}"',
+            ),
+            "contact_requests_list.html": (
+                'aria-label="Ver consulta de {{ contact.nombre }}"',
+                'aria-label="Eliminar consulta de {{ contact.nombre }}"',
+            ),
+        }
+
+        for name, labels in expectations.items():
+            source = (root / name).read_text(encoding="utf-8")
+            for label in labels:
+                with self.subTest(template=name, label=label):
+                    self.assertIn(label, source)

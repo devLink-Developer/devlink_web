@@ -31,6 +31,20 @@ class NavigationContractParser(HTMLParser):
 
 @override_settings(STATIC_ROOT=Path(settings.BASE_DIR) / "static")
 class FrontendContractTests(SimpleTestCase):
+    def test_email_templates_keep_brand_and_contact_links(self):
+        root = Path(settings.BASE_DIR) / "templates"
+        for name in (
+            "email-bienvenida.html",
+            "email-preview.html",
+            "email-campana-servicios-inline.html",
+            "email-campana-suite-lite-inline.html",
+            "email-campana-chatbot-webapp.html",
+        ):
+            source = (root / name).read_text(encoding="utf-8")
+            self.assertIn("devLink", source)
+            self.assertIn("devlink.com.ar", source)
+            self.assertRegex(source.lower(), r"#(?:07162d|1264f6|06d6ff)")
+
     def test_home_preserves_sections_and_contact_fields(self):
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)

@@ -98,8 +98,36 @@ class EmailTableParser(HTMLParser):
             self._anchor_context[-1]["text"].append(data)
 
 
-@override_settings(STATIC_ROOT=Path(settings.BASE_DIR) / "static")
+@override_settings(
+    STATIC_ROOT=Path(settings.BASE_DIR) / "static",
+    STATICFILES_STORAGE="django.contrib.staticfiles.storage.StaticFilesStorage",
+)
 class FrontendContractTests(SimpleTestCase):
+    def _marketing_page_fixture(self):
+        root = Path(settings.BASE_DIR)
+        html = self.client.get("/").content.decode("utf-8").replace(
+            "<head>", '<head><base href="https://devlink.test/">', 1
+        )
+        css = (root / "static" / "styles.css").read_text(
+            encoding="utf-8-sig"
+        )
+        fonts = root / "static" / "fonts"
+
+        def fulfill_local_assets(route):
+            path = urlparse(route.request.url).path
+            if path == "/static/styles.css":
+                route.fulfill(status=200, content_type="text/css", body=css)
+            elif path.startswith("/static/fonts/"):
+                route.fulfill(
+                    status=200,
+                    content_type="font/woff2",
+                    body=(fonts / Path(path).name).read_bytes(),
+                )
+            else:
+                route.abort()
+
+        return html, fulfill_local_assets
+
     def test_email_templates_keep_brand_and_contact_links(self):
         root = Path(settings.BASE_DIR) / "templates"
         template_names = (
@@ -526,10 +554,7 @@ class FrontendContractTests(SimpleTestCase):
         except ImportError:
             self.skipTest("Playwright is not installed")
 
-        html = self.client.get("/").content.decode("utf-8")
-        css = (Path(settings.BASE_DIR) / "static" / "styles.css").read_text(
-            encoding="utf-8-sig"
-        )
+        html, fulfill_local_assets = self._marketing_page_fixture()
         viewports = (
             ("desktop", {"width": 1440, "height": 900}, 24, 40),
             ("mobile", {"width": 390, "height": 844}, 16, 28),
@@ -545,10 +570,10 @@ class FrontendContractTests(SimpleTestCase):
                     with self.subTest(viewport=name):
                         page = browser.new_page(viewport=viewport)
                         try:
-                            page.route("https://**", lambda route: route.abort())
+                            page.route("https://**", fulfill_local_assets)
                             page.emulate_media(reduced_motion="reduce")
                             page.set_content(html, wait_until="domcontentloaded")
-                            page.add_style_tag(content=css)
+                            page.evaluate("document.fonts.ready")
                             page.evaluate(
                                 """
                                 () => {
@@ -570,6 +595,46 @@ class FrontendContractTests(SimpleTestCase):
                             )
                             self.assertGreaterEqual(gap, minimum_gap)
                             self.assertLessEqual(gap, maximum_gap)
+                        finally:
+                            page.close()
+            finally:
+                browser.close()
+
+    def test_marketing_stats_headings_stay_inside_their_columns(self):
+        try:
+            from playwright.sync_api import Error as PlaywrightError
+            from playwright.sync_api import sync_playwright
+        except ImportError:
+            self.skipTest("Playwright is not installed")
+
+        html, fulfill_local_assets = self._marketing_page_fixture()
+
+        with sync_playwright() as playwright:
+            try:
+                browser = playwright.chromium.launch(channel="chrome", headless=True)
+            except PlaywrightError as error:
+                self.skipTest(f"Installed Chrome is unavailable: {error}")
+            try:
+                for width in (960, 1020, 1295, 1440):
+                    with self.subTest(viewport_width=width):
+                        page = browser.new_page(
+                            viewport={"width": width, "height": 650}
+                        )
+                        try:
+                            page.route("https://**", fulfill_local_assets)
+                            page.emulate_media(reduced_motion="reduce")
+                            page.set_content(html, wait_until="domcontentloaded")
+                            page.evaluate("document.fonts.ready")
+                            overflows = page.eval_on_selector_all(
+                                ".stats-grid article h3",
+                                """
+                                headings => headings.map(heading => ({
+                                    label: heading.textContent.trim(),
+                                    overflow: heading.scrollWidth - heading.clientWidth,
+                                })).filter(metric => metric.overflow > 0)
+                                """,
+                            )
+                            self.assertEqual(overflows, [])
                         finally:
                             page.close()
             finally:

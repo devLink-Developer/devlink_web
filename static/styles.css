@@ -2395,7 +2395,7 @@ textarea::placeholder {
 .marketing-page .stats-grid article h3 {
   margin-bottom: 0.65rem;
   color: var(--brand-700);
-  font-size: clamp(2rem, 3.8vw, 3.35rem);
+  font-size: clamp(2rem, 3.2vw, 2.75rem);
   line-height: 1;
   letter-spacing: -0.035em;
   font-variant-numeric: tabular-nums;

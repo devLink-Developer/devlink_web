@@ -2107,9 +2107,10 @@ textarea::placeholder {
 }
 
 .marketing-page .hero {
-  min-height: min(860px, calc(100svh - var(--header-height)));
+  min-height: auto;
   display: grid;
-  align-items: center;
+  align-items: start;
+  padding-block: 2rem clamp(4.5rem, 7vw, 7rem);
   overflow: hidden;
   background: var(--surface-white);
   color: var(--text-primary);
@@ -3081,6 +3082,10 @@ textarea::placeholder {
 
   .marketing-page .section-shell {
     padding-block: clamp(4.5rem, 18vw, 6rem);
+  }
+
+  .marketing-page .hero {
+    padding-block: 1.5rem 4.5rem;
   }
 
   .marketing-page .hero-copy h1 {

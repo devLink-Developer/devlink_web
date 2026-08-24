@@ -519,6 +519,62 @@ class FrontendContractTests(SimpleTestCase):
         self.assertIn("background: var(--surface-white);", hero_rule)
         self.assertNotIn("radial-gradient", hero_rule)
 
+    def test_marketing_hero_uses_compact_top_inset_at_supported_widths(self):
+        try:
+            from playwright.sync_api import Error as PlaywrightError
+            from playwright.sync_api import sync_playwright
+        except ImportError:
+            self.skipTest("Playwright is not installed")
+
+        html = self.client.get("/").content.decode("utf-8")
+        css = (Path(settings.BASE_DIR) / "static" / "styles.css").read_text(
+            encoding="utf-8-sig"
+        )
+        viewports = (
+            ("desktop", {"width": 1440, "height": 900}, 24, 40),
+            ("mobile", {"width": 390, "height": 844}, 16, 28),
+        )
+
+        with sync_playwright() as playwright:
+            try:
+                browser = playwright.chromium.launch(channel="chrome", headless=True)
+            except PlaywrightError as error:
+                self.skipTest(f"Installed Chrome is unavailable: {error}")
+            try:
+                for name, viewport, minimum_gap, maximum_gap in viewports:
+                    with self.subTest(viewport=name):
+                        page = browser.new_page(viewport=viewport)
+                        try:
+                            page.route("https://**", lambda route: route.abort())
+                            page.emulate_media(reduced_motion="reduce")
+                            page.set_content(html, wait_until="domcontentloaded")
+                            page.add_style_tag(content=css)
+                            page.evaluate(
+                                """
+                                () => {
+                                    document.documentElement.style.scrollBehavior = 'auto';
+                                    window.scrollTo(0, 0);
+                                }
+                                """
+                            )
+                            gap = page.evaluate(
+                                """
+                                () => {
+                                    const hero = document.querySelector('.hero')
+                                        .getBoundingClientRect();
+                                    const heading = document.querySelector('.hero h1')
+                                        .getBoundingClientRect();
+                                    return Math.round(heading.top - hero.top);
+                                }
+                                """
+                            )
+                            self.assertGreaterEqual(gap, minimum_gap)
+                            self.assertLessEqual(gap, maximum_gap)
+                        finally:
+                            page.close()
+            finally:
+                browser.close()
+
     def test_base_loads_shared_styles_and_brand(self):
         source = (
             Path(settings.BASE_DIR) / "templates" / "base.html"

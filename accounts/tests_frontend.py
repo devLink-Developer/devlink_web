@@ -106,23 +106,45 @@ class FrontendContractTests(SimpleTestCase):
             "email-campana-suite-lite-inline.html",
             "email-campana-chatbot-webapp.html",
         )
+        expected_site_links = {
+            "email-bienvenida.html": (
+                "https://devlink.com.ar/documentacion",
+                "https://devlink.com.ar",
+                "https://devlink.com.ar/documentacion",
+            ),
+            "email-preview.html": (
+                "https://devlink.com.ar/documentacion",
+                "https://devlink.com.ar",
+                "https://devlink.com.ar/documentacion",
+            ),
+            "email-campana-servicios-inline.html": (
+                "https://devlink.com.ar/#contacto",
+                "https://devlink.com.ar",
+            ),
+            "email-campana-suite-lite-inline.html": (
+                "https://devlink.com.ar",
+                "https://devlink.com.ar/#contacto",
+                "https://devlink.com.ar",
+            ),
+            "email-campana-chatbot-webapp.html": (
+                "https://devlink.com.ar/#contacto",
+                "https://devlink.com.ar",
+            ),
+        }
         for name in template_names:
             source = (root / name).read_text(encoding="utf-8")
             self.assertIn("devLink", source)
-            self.assertIn('href="https://devlink.com.ar', source)
             self.assertIn('href="mailto:info@devlink.com.ar"', source)
             for color in ("#07162d", "#1264f6", "#06d6ff"):
                 self.assertIn(color, source.lower())
             hrefs = re.findall(r'href="([^"]+)"', source)
-            site_hosts = {
-                urlparse(href).hostname
+            site_links = tuple(
+                href
                 for href in hrefs
-                if href.startswith("https://") and "devlink" in href
-            }
-            self.assertTrue(site_hosts)
-            self.assertTrue(
-                site_hosts.issubset({"devlink.com.ar", "www.devlink.com.ar"})
+                if urlparse(href).hostname
+                in {"devlink.com.ar", "www.devlink.com.ar"}
             )
+            self.assertEqual(site_links, expected_site_links[name])
             self.assertRegex(
                 source,
                 r'<table[^>]+role="presentation"[^>]+width="(?:100%|600)"',

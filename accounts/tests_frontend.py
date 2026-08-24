@@ -327,3 +327,61 @@ class FrontendContractTests(SimpleTestCase):
                     "behavior: reducedMotion.matches ? 'auto' : 'smooth'",
                     source,
                 )
+
+    def test_dashboard_templates_keep_critical_bindings(self):
+        root = Path(settings.BASE_DIR) / "templates" / "dashboard"
+        expectations = {
+            "main.html": ("client_products", "website_url", "logout"),
+            "whatsapp_report.html": ("page_obj", "total_consultas", "fecha_reporte"),
+            "edit_questions.html": ("respuesta_id", "nueva_respuesta", "save-question"),
+        }
+
+        for name, needles in expectations.items():
+            source = (root / name).read_text(encoding="utf-8")
+            for needle in needles:
+                with self.subTest(template=name, binding=needle):
+                    self.assertIn(needle, source)
+
+    def test_dashboard_templates_expose_shared_operational_layout(self):
+        root = Path(settings.BASE_DIR) / "templates" / "dashboard"
+        main_source = (root / "main.html").read_text(encoding="utf-8")
+        report_source = (root / "whatsapp_report.html").read_text(encoding="utf-8")
+        editor_source = (root / "edit_questions.html").read_text(encoding="utf-8")
+        css = (Path(settings.BASE_DIR) / "static" / "styles.css").read_text(
+            encoding="utf-8"
+        )
+
+        for source in (main_source, report_source, editor_source):
+            self.assertIn('class="app-shell', source)
+            self.assertIn('class="app-header', source)
+            self.assertIn('class="dashboard-shell', source)
+            self.assertIn('class="page-heading', source)
+
+        self.assertIn('class="metric-grid', main_source)
+        self.assertIn('class="product-list', main_source)
+        self.assertIn('class="metric-grid', report_source)
+        self.assertIn('class="report-table', report_source)
+        self.assertIn('class="editor-list', editor_source)
+        self.assertIn('aria-modal="true"', editor_source)
+        self.assertIn('aria-labelledby="modalTitle"', editor_source)
+
+        for selector in (
+            ".dashboard-shell",
+            ".metric-grid",
+            ".product-list",
+            ".report-table",
+            ".editor-list",
+        ):
+            self.assertIn(selector, css)
+
+    def test_dashboard_mobile_shell_uses_a_valid_contained_width(self):
+        css = (Path(settings.BASE_DIR) / "static" / "styles.css").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn(
+            "width: min(calc(100% - 1.25rem), var(--content-width));",
+            css,
+        )
+        self.assertIn(".product-item__copy > p {", css)
+        self.assertIn("overflow-wrap: anywhere;", css)

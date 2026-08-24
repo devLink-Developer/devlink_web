@@ -36,8 +36,11 @@ class EmailTableParser(HTMLParser):
         super().__init__()
         self._tables = []
         self._cells = []
+        self._cta_cell_context = []
+        self._anchor_context = []
         self.tables = []
         self.first_logo_cell_styles = []
+        self.cta_cells = []
 
     def handle_starttag(self, tag, attrs):
         attributes = dict(attrs)
@@ -47,6 +50,28 @@ class EmailTableParser(HTMLParser):
             self._tables[-1]["has_th"] = True
         if tag == "td":
             self._cells.append(attributes)
+            classes = set(attributes.get("class", "").split())
+            cta_cell = (
+                {"attrs": attributes, "anchors": []}
+                if {"stack", "cta-cell"}.issubset(classes)
+                else None
+            )
+            self._cta_cell_context.append(cta_cell)
+            if cta_cell:
+                self.cta_cells.append(cta_cell)
+        elif tag == "a":
+            cta_cell = next(
+                (
+                    cell
+                    for cell in reversed(self._cta_cell_context)
+                    if cell is not None
+                ),
+                None,
+            )
+            anchor = {"attrs": attributes, "text": []} if cta_cell else None
+            self._anchor_context.append(anchor)
+            if anchor:
+                cta_cell["anchors"].append(anchor)
         elif (
             tag == "img"
             and attributes.get("alt") == "devLink"
@@ -61,6 +86,13 @@ class EmailTableParser(HTMLParser):
             self.tables.append(self._tables.pop())
         elif tag == "td" and self._cells:
             self._cells.pop()
+            self._cta_cell_context.pop()
+        elif tag == "a" and self._anchor_context:
+            self._anchor_context.pop()
+
+    def handle_data(self, data):
+        if self._anchor_context and self._anchor_context[-1]:
+            self._anchor_context[-1]["text"].append(data)
 
 
 @override_settings(STATIC_ROOT=Path(settings.BASE_DIR) / "static")
@@ -116,7 +148,7 @@ class FrontendContractTests(SimpleTestCase):
             )
             self.assertTrue(
                 any(
-                    style.get("padding")
+                    self._padding_is_adequate(style.get("padding", ""))
                     and (
                         style.get("background") == "#07162d"
                         or style.get("background-color") == "#07162d"
@@ -154,12 +186,14 @@ class FrontendContractTests(SimpleTestCase):
             ),
         }
         for name, contracts in responsive_contracts.items():
-            compact = re.sub(
-                r"\s+", "", (root / name).read_text(encoding="utf-8")
+            mobile_css = "".join(
+                self._mobile_media_blocks(
+                    (root / name).read_text(encoding="utf-8")
+                )
             )
-            self.assertIn("@media", compact)
+            self.assertTrue(mobile_css)
             for contract in contracts:
-                self.assertRegex(compact, contract)
+                self.assertRegex(mobile_css, contract)
 
         for name in ("email-bienvenida.html", "email-preview.html"):
             parser = EmailTableParser()
@@ -181,7 +215,17 @@ class FrontendContractTests(SimpleTestCase):
         chatbot = (root / "email-campana-chatbot-webapp.html").read_text(
             encoding="utf-8"
         )
-        self.assertGreaterEqual(chatbot.count('class="stack cta-cell"'), 2)
+        parser = EmailTableParser()
+        parser.feed(chatbot)
+        self.assertGreaterEqual(len(parser.cta_cells), 2)
+        for cta_cell in parser.cta_cells:
+            self.assertTrue(
+                any(
+                    anchor["attrs"].get("href", "").startswith("https://")
+                    and "".join(anchor["text"]).strip()
+                    for anchor in cta_cell["anchors"]
+                )
+            )
         self.assertRegex(
             chatbot.replace(" ", ""),
             r'\.cta-cell\{[^}]*display:block!important;[^}]*width:100%!important;'
@@ -189,6 +233,16 @@ class FrontendContractTests(SimpleTestCase):
         )
 
         footer_fragments = {
+            "email-bienvenida.html": (
+                root / "email-bienvenida.html"
+            ).read_text(encoding="utf-8").rsplit(
+                '<tr><td class="section-padding"', 1
+            )[1],
+            "email-preview.html": (
+                root / "email-preview.html"
+            ).read_text(encoding="utf-8").rsplit(
+                '<tr><td class="preview-section"', 1
+            )[1].split("</td></tr>", 1)[0],
             "email-campana-servicios-inline.html": (
                 root / "email-campana-servicios-inline.html"
             ).read_text(encoding="utf-8").split("<!-- Footer -->", 1)[1],
@@ -196,6 +250,11 @@ class FrontendContractTests(SimpleTestCase):
                 root / "email-campana-suite-lite-inline.html"
             ).read_text(encoding="utf-8").rsplit(
                 '<tr><td class="section-padding"', 1
+            )[1],
+            "email-campana-chatbot-webapp.html": (
+                root / "email-campana-chatbot-webapp.html"
+            ).read_text(encoding="utf-8").rsplit(
+                '<tr><td class="section"', 1
             )[1],
         }
         for name, footer in footer_fragments.items():
@@ -220,6 +279,43 @@ class FrontendContractTests(SimpleTestCase):
             if ":" in declaration
             for property_name, value in (declaration.split(":", 1),)
         }
+
+    @staticmethod
+    def _padding_is_adequate(source, minimum_px=20):
+        tokens = source.lower().split()
+        if not 1 <= len(tokens) <= 4:
+            return False
+        values = []
+        for token in tokens:
+            if token == "0":
+                values.append(0)
+                continue
+            match = re.fullmatch(r"([0-9]+(?:\.[0-9]+)?)px", token)
+            if not match:
+                return False
+            values.append(float(match.group(1)))
+        return all(value >= minimum_px for value in values)
+
+    @staticmethod
+    def _mobile_media_blocks(source):
+        compact = re.sub(r"\s+", "", source)
+        blocks = []
+        for match in re.finditer(
+            r"@media(?:(?:only)?screenand)?\(max-width:[0-9]+px\)\{",
+            compact,
+            re.IGNORECASE,
+        ):
+            depth = 1
+            index = match.end()
+            while index < len(compact) and depth:
+                if compact[index] == "{":
+                    depth += 1
+                elif compact[index] == "}":
+                    depth -= 1
+                index += 1
+            if depth == 0:
+                blocks.append(compact[match.end():index - 1])
+        return blocks
 
     @staticmethod
     def _contrast_ratio(foreground, background):

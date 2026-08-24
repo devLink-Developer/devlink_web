@@ -1,7 +1,31 @@
+from html.parser import HTMLParser
 from pathlib import Path
 
 from django.conf import settings
 from django.test import SimpleTestCase, override_settings
+
+
+class NavigationContractParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.nav_attributes = {}
+        self.toggle_attributes = {}
+        self.nav_link_count = 0
+        self._inside_navigation = False
+
+    def handle_starttag(self, tag, attrs):
+        attributes = dict(attrs)
+        if tag == "button" and "data-nav-toggle" in attributes:
+            self.toggle_attributes = attributes
+        if tag == "nav" and "data-nav" in attributes:
+            self.nav_attributes = attributes
+            self._inside_navigation = True
+        elif tag == "a" and self._inside_navigation:
+            self.nav_link_count += 1
+
+    def handle_endtag(self, tag):
+        if tag == "nav" and self._inside_navigation:
+            self._inside_navigation = False
 
 
 @override_settings(STATIC_ROOT=Path(settings.BASE_DIR) / "static")
@@ -56,6 +80,53 @@ class FrontendContractTests(SimpleTestCase):
 
         self.assertIn("event.key === 'Escape'", source)
         self.assertIn("navToggle.focus()", source)
+
+    def test_closed_mobile_navigation_is_removed_from_focus_order(self):
+        response = self.client.get("/")
+        parser = NavigationContractParser()
+        parser.feed(response.content.decode("utf-8"))
+
+        self.assertGreater(parser.nav_link_count, 0)
+        self.assertIn("inert", parser.nav_attributes)
+        self.assertEqual(parser.toggle_attributes["aria-expanded"], "false")
+        self.assertEqual(
+            parser.toggle_attributes["aria-controls"],
+            parser.nav_attributes["id"],
+        )
+
+        css = (
+            Path(settings.BASE_DIR) / "static" / "styles.css"
+        ).read_text(encoding="utf-8")
+        self.assertRegex(
+            css,
+            r"(?s)@media \(max-width: 959px\).*?\.nav-links \{.*?"
+            r"visibility: hidden;.*?\.nav-links\.is-open \{.*?"
+            r"visibility: visible;",
+        )
+        self.assertRegex(
+            css,
+            r"(?s)@media \(min-width: 960px\).*?\.nav-links \{.*?"
+            r"visibility: visible;",
+        )
+
+    def test_service_icons_use_the_existing_decorative_icon_family(self):
+        source = self.client.get("/").content.decode("utf-8")
+
+        for emoji in ("📦", "🤝", "⚙️", "💬"):
+            self.assertNotIn(emoji, source)
+        self.assertEqual(source.count('class="service-icon" aria-hidden="true"'), 4)
+        for icon in ("fa-database", "fa-handshake", "fa-gears", "fa-comments"):
+            self.assertIn(icon, source)
+        self.assertIn("font-awesome/6.0.0/css/all.min.css", source)
+
+    def test_marketing_hero_uses_a_solid_non_luminous_surface(self):
+        css = (
+            Path(settings.BASE_DIR) / "static" / "styles.css"
+        ).read_text(encoding="utf-8")
+        hero_rule = css.split(".marketing-page .hero {", 1)[1].split("}", 1)[0]
+
+        self.assertIn("background: var(--surface-white);", hero_rule)
+        self.assertNotIn("radial-gradient", hero_rule)
 
     def test_base_loads_shared_styles_and_brand(self):
         source = (

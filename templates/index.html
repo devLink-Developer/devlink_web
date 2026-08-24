@@ -7,6 +7,7 @@
   <title>devLink | Migración de datos y automatización a medida</title>
   <meta name="description" content="Equipo experto en migración de datos, acompañamiento de implementaciones, automatización con RPA y Arduino, desarrollo web y chatbots. Podemos alojar tus soluciones en nuestra nube o en tu infraestructura." />
   <link rel="icon" type="image/webp" href="https://ss-static-001.esmsv.com/r/content/host2/4172d4e2978b9da867fe259f4df844c8//editor/transparente.webp" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
   <link rel="stylesheet" href="{% static 'styles.css' %}" />
 </head>
 <body class="marketing-page">
@@ -27,7 +28,7 @@
       <button class="nav-toggle" aria-label="Abrir menú" aria-expanded="false" aria-controls="marketing-navigation" data-nav-toggle>
         <span></span><span></span><span></span>
       </button>
-      <nav class="nav-links" id="marketing-navigation" data-nav>
+      <nav class="nav-links" id="marketing-navigation" data-nav inert>
         <a href="#inicio">Inicio</a>
         <a href="#servicios">Servicios</a>
         <a href="#suite-lite">Suite Lite</a>
@@ -106,7 +107,7 @@
         </div>
         <div class="service-grid">
           <article class="service-card">
-            <span class="service-icon">📦</span>
+            <span class="service-icon" aria-hidden="true"><i class="fa-solid fa-database"></i></span>
             <h3>Migración y datos confiables</h3>
             <p>Planificamos y ejecutamos migraciones desde D365, SAP, TMW-WMS y otras plataformas sin frenar la operación.</p>
             <ul>
@@ -116,7 +117,7 @@
             </ul>
           </article>
           <article class="service-card">
-            <span class="service-icon">🤝</span>
+            <span class="service-icon" aria-hidden="true"><i class="fa-solid fa-handshake"></i></span>
             <h3>Acompañamiento de implementaciones</h3>
             <p>Participamos en tus proyectos clave como un socio más: PMO, workshops y soporte funcional para asegurar adopción.</p>
             <ul>
@@ -126,7 +127,7 @@
             </ul>
           </article>
           <article class="service-card">
-            <span class="service-icon">⚙️</span>
+            <span class="service-icon" aria-hidden="true"><i class="fa-solid fa-gears"></i></span>
             <h3>Automatización a medida</h3>
             <p>Construimos flujos con RPA y soluciones Arduino que eliminan tareas repetitivas y conectan tus datos.</p>
             <ul>
@@ -136,7 +137,7 @@
             </ul>
           </article>
           <article class="service-card">
-            <span class="service-icon">💬</span>
+            <span class="service-icon" aria-hidden="true"><i class="fa-solid fa-comments"></i></span>
             <h3>Experiencias digitales</h3>
             <p>Desarrollamos webs corporativas, aplicaciones y chatbots integrados con WhatsApp y modelos de IA.</p>
             <ul>
@@ -377,6 +378,7 @@
     const nav = document.querySelector('[data-nav]');
     const navToggle = document.querySelector('[data-nav-toggle]');
     const navLinks = [...document.querySelectorAll('[data-nav] a')];
+    const desktopNavigation = window.matchMedia('(min-width: 960px)');
     let lastScroll = 0;
 
     const threshold = 120;
@@ -410,18 +412,24 @@
       lastScroll = current <= 0 ? 0 : current;
     });
 
-    navToggle.addEventListener('click', () => {
-      const expanded = navToggle.getAttribute('aria-expanded') === 'true';
-      navToggle.setAttribute('aria-expanded', String(!expanded));
-      nav.classList.toggle('is-open');
-      document.body.classList.toggle('no-scroll', !expanded);
-    });
+    const setNavigationState = expanded => {
+      const isOpen = !desktopNavigation.matches && expanded;
+      nav.classList.toggle('is-open', isOpen);
+      navToggle.setAttribute('aria-expanded', String(isOpen));
+      nav.inert = !desktopNavigation.matches && !isOpen;
+      document.body.classList.toggle('no-scroll', isOpen);
+    };
 
     const closeNavigation = () => {
-      nav.classList.remove('is-open');
-      navToggle.setAttribute('aria-expanded', 'false');
-      document.body.classList.remove('no-scroll');
+      setNavigationState(false);
     };
+
+    setNavigationState(false);
+
+    navToggle.addEventListener('click', () => {
+      const expanded = navToggle.getAttribute('aria-expanded') === 'true';
+      setNavigationState(!expanded);
+    });
 
     navLinks.forEach(link => {
       link.addEventListener('click', () => {
@@ -435,6 +443,12 @@
         navToggle.focus();
       }
     });
+
+    if (desktopNavigation.addEventListener) {
+      desktopNavigation.addEventListener('change', closeNavigation);
+    } else {
+      desktopNavigation.addListener(closeNavigation);
+    }
 
     document.querySelector('[data-year]').textContent = new Date().getFullYear();
   </script>

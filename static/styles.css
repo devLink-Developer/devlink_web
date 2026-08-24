@@ -891,14 +891,20 @@ textarea::placeholder {
     box-shadow: var(--shadow-md);
     transform: translateY(-20px);
     opacity: 0;
+    visibility: hidden;
     pointer-events: none;
-    transition: opacity 0.3s ease, transform 0.3s ease;
+    transition:
+      opacity 0.3s ease,
+      transform 0.3s ease,
+      visibility 0s linear 0.3s;
   }
 
   .nav-links.is-open {
     opacity: 1;
+    visibility: visible;
     transform: translateY(0);
     pointer-events: auto;
+    transition-delay: 0s;
   }
 }
 
@@ -906,6 +912,7 @@ textarea::placeholder {
   .nav-links {
     position: static;
     opacity: 1;
+    visibility: visible;
     transform: none;
     pointer-events: auto;
     background: transparent;
@@ -2077,10 +2084,7 @@ textarea::placeholder {
   display: grid;
   align-items: center;
   overflow: hidden;
-  background:
-    radial-gradient(circle at 88% 18%, rgba(6, 214, 255, 0.1), transparent 24rem),
-    radial-gradient(circle at 72% 58%, rgba(18, 100, 246, 0.08), transparent 31rem),
-    var(--surface-white);
+  background: var(--surface-white);
   color: var(--text-primary);
 }
 
@@ -2422,9 +2426,10 @@ textarea::placeholder {
   border: 1px solid var(--border-subtle);
   border-radius: 10px;
   background: var(--surface-white);
-  filter: grayscale(1);
-  font-size: 1.05rem;
-  opacity: 0.76;
+  color: var(--brand-700);
+  filter: none;
+  font-size: 0.95rem;
+  opacity: 1;
 }
 
 .marketing-page .service-card h3 {

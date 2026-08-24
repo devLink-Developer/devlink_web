@@ -1309,6 +1309,21 @@ class FrontendContractTests(SimpleTestCase):
                 """
             )
 
+        def wait_for_closed_navigation(page, *, inert):
+            page.wait_for_function(
+                """
+                expectedInert => {
+                    const toggle = document.querySelector('[data-nav-toggle]');
+                    const nav = document.querySelector('[data-nav]');
+                    return toggle.getAttribute('aria-expanded') === 'false'
+                        && !nav.classList.contains('is-open')
+                        && nav.inert === expectedInert
+                        && !document.body.classList.contains('no-scroll');
+                }
+                """,
+                arg=inert,
+            )
+
         with sync_playwright() as playwright:
             try:
                 browser = playwright.chromium.launch(channel="chrome", headless=True)
@@ -1337,7 +1352,7 @@ class FrontendContractTests(SimpleTestCase):
                                 },
                             )
                             page.set_viewport_size({"width": 1440, "height": 900})
-                            page.wait_for_timeout(50)
+                            wait_for_closed_navigation(page, inert=False)
                             self.assertEqual(
                                 state(page),
                                 {
@@ -1349,9 +1364,10 @@ class FrontendContractTests(SimpleTestCase):
                                 },
                             )
                             page.set_viewport_size({"width": 390, "height": 844})
-                            page.wait_for_timeout(50)
+                            wait_for_closed_navigation(page, inert=True)
                             page.locator("[data-nav-toggle]").click()
                             page.keyboard.press("Escape")
+                            wait_for_closed_navigation(page, inert=True)
                             self.assertEqual(
                                 state(page),
                                 {

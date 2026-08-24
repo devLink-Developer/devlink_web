@@ -23,10 +23,14 @@ Focused installed-Chrome regression tests are added next and must show the six e
 - Final post-fix `python manage.py test -v 2`: PASS — 30 tests, 0 failures/errors, 15.623s. Output ended with `OK` and `System check identified no issues (0 silenced)`.
 - Post-finish-review `python manage.py test -v 2`: PASS — 34 tests, 0 failures/errors, 12.555s. The four new contracts cover the canonical email logo, Suite Lite semantics/content/order, installed-Chrome font loading, and the client-report mobile panel.
 - Final whole-branch focused RED: six tests produced the expected product failures before implementation — report overflow masking, three overflowing email templates, native methodology markers, stale navigation state on all five pages, missing Font Awesome pseudo-content, and absent contextual admin names. Two initial test-harness mistakes (Playwright keyword argument and whitespace normalization) were corrected and rerun; the resulting icon/admin failures were genuine product REDs.
-- Final whole-branch focused GREEN: PASS — 6 tests, 0 failures/errors, 21.053s in installed Chrome.
-- Final whole-branch full suite: PASS — 40 tests, 0 failures/errors, 34.902s. Output ended with `OK` and `System check identified no issues (0 silenced)`.
+- Final whole-branch focused GREEN after test-evidence hardening: PASS — 6 tests, 0 failures/errors, 21.272s in installed Chrome.
+- Final whole-branch full suite after test-evidence hardening: PASS — 40 tests, 0 failures/errors, 33.837s. Output ended with `OK` and `System check identified no issues (0 silenced)`.
 - Initial and final `python manage.py check`: PASS — `System check identified no issues (0 silenced)`.
 - `git diff --check`: clean (only Git's expected LF→CRLF working-copy notices were emitted).
+
+### Navigation test-evidence hardening
+
+The final reviewer confirmed the navigation product fix but identified order-dependent evidence in its regression test: a fixed 50ms delay after `page.set_viewport_size` could finish before Chromium delivered the `matchMedia` change event. The isolated test first passed once and then reproduced the race on the next attempt, reading `aria-expanded=true`, `.is-open`, and `body.no-scroll` before the controller reset. No production defect was found and no template or CSS changed. The test now conditionally waits for the complete observable closed state — `aria-expanded=false`, no `.is-open`, no `body.no-scroll`, and the breakpoint-appropriate `nav.inert` value — after desktop resize, mobile resize, and Escape. The isolated test then passed three consecutive runs (`5.132s`, `7.122s`, `5.351s`), followed by the six-test focused pass and 40-test full-suite pass recorded above.
 
 ### Live-server environment isolation
 

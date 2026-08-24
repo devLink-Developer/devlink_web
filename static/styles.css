@@ -2654,8 +2654,10 @@ textarea::placeholder {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0;
   margin: 0;
+  padding-inline-start: 0;
   padding-top: 2.1rem;
   border-top: 1px solid rgba(216, 225, 237, 0.28);
+  list-style: none;
 }
 
 .marketing-page .process-steps li {
@@ -3861,8 +3863,8 @@ textarea::placeholder {
 
 /* =============== CLIENT PORTAL AND DASHBOARDS =============== */
 .portal-page {
+  grid-template-columns: minmax(0, 1fr);
   background: var(--surface-canvas);
-  overflow-x: hidden;
 }
 
 .portal-page section {
@@ -3889,6 +3891,7 @@ textarea::placeholder {
 }
 
 .dashboard-shell {
+  min-width: 0;
   width: min(var(--content-width), calc(100% - 2rem));
   margin-inline: auto;
   padding-block: clamp(1.5rem, 4vw, 3rem);
@@ -4188,6 +4191,9 @@ textarea::placeholder {
 }
 
 .report-table-wrap {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
   border: 0;
   border-radius: 0;
 }
@@ -4247,12 +4253,18 @@ textarea::placeholder {
 
 .dashboard-note {
   display: flex;
+  min-width: 0;
   justify-content: center;
   gap: 0.45rem;
   margin-top: 1.25rem;
   color: var(--text-muted);
   font-size: 0.82rem;
   text-align: center;
+}
+
+.dashboard-note p {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .editor-list {

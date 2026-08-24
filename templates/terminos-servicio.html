@@ -531,6 +531,7 @@
     const nav = document.querySelector('[data-nav]');
     const navToggle = document.querySelector('[data-nav-toggle]');
     const navLinks = [...document.querySelectorAll('[data-nav] a')];
+    const desktopNavigation = window.matchMedia('(min-width: 960px)');
     let lastScroll = 0;
 
     const threshold = 120;
@@ -564,20 +565,41 @@
       lastScroll = current <= 0 ? 0 : current;
     });
 
+    const setNavigationState = expanded => {
+      const isOpen = !desktopNavigation.matches && expanded;
+      nav.classList.toggle('is-open', isOpen);
+      navToggle.setAttribute('aria-expanded', String(isOpen));
+      nav.inert = !desktopNavigation.matches && !isOpen;
+      document.body.classList.toggle('no-scroll', isOpen);
+    };
+
+    const closeNavigation = () => {
+      setNavigationState(false);
+    };
+
+    setNavigationState(false);
+
     navToggle.addEventListener('click', () => {
       const expanded = navToggle.getAttribute('aria-expanded') === 'true';
-      navToggle.setAttribute('aria-expanded', String(!expanded));
-      nav.classList.toggle('is-open');
-      document.body.classList.toggle('no-scroll', !expanded);
+      setNavigationState(!expanded);
     });
 
     navLinks.forEach(link => {
-      link.addEventListener('click', () => {
-        nav.classList.remove('is-open');
-        navToggle.setAttribute('aria-expanded', 'false');
-        document.body.classList.remove('no-scroll');
-      });
+      link.addEventListener('click', closeNavigation);
     });
+
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && nav.classList.contains('is-open')) {
+        closeNavigation();
+        navToggle.focus();
+      }
+    });
+
+    if (desktopNavigation.addEventListener) {
+      desktopNavigation.addEventListener('change', closeNavigation);
+    } else {
+      desktopNavigation.addListener(closeNavigation);
+    }
 
     // Responsive index and active location
     const readingIndex = document.querySelector('.reading-index');

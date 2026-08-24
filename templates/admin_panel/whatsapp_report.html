@@ -17,7 +17,7 @@
             <article class="admin-metric"><span aria-hidden="true"><i class="fas fa-chart-line"></i></span><dl><dt>Promedio/Usuario</dt><dd>{{ promedio_usuario }}</dd></dl></article>
         </section>
         <section class="panel panel--data" aria-labelledby="top-questions-title">
-            <div class="panel__header"><h2 id="top-questions-title" class="panel__title"><i class="fas fa-ranking-star" aria-hidden="true"></i> Top 10 Preguntas Más Consultadas</h2></div>
+            <div class="panel__header"><h2 id="top-questions-title" class="panel__title"><i class="fas fa-trophy" aria-hidden="true"></i> Top 10 Preguntas Más Consultadas</h2></div>
             <div class="table-scroll"><table class="data-table admin-data-table report-table"><thead><tr><th scope="col">#</th><th scope="col">Pregunta</th><th scope="col">Consultas</th><th scope="col">Usuarios</th><th scope="col">Última Consulta</th></tr></thead><tbody>{% for item in top_10 %}<tr><td data-label="#" class="table-rank">{{ forloop.counter }}</td><td data-label="Pregunta">{{ item.pregunta }}</td><td data-label="Consultas"><span class="count-badge">{{ item.total_consultas }}</span></td><td data-label="Usuarios">{{ item.usuarios_unicos }}</td><td data-label="Última Consulta" class="table-cell--muted">{{ item.ultima_consulta }}</td></tr>{% endfor %}</tbody></table></div>
         </section>
         <section class="panel panel--data" aria-labelledby="all-questions-title">

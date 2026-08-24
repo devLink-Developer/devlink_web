@@ -5,7 +5,7 @@
 {% block content %}
 <div class="admin-shell page-shell">
     <header class="admin-toolbar">
-        <div class="admin-toolbar__title"><span class="admin-mark" aria-hidden="true"><i class="fas fa-shield-halved"></i></span><div><h1>Panel de Administración</h1><p>Resumen operativo de DevLink</p></div></div>
+        <div class="admin-toolbar__title"><span class="admin-mark" aria-hidden="true"><i class="fas fa-shield-alt"></i></span><div><h1>Panel de Administración</h1><p>Resumen operativo de DevLink</p></div></div>
         <nav class="admin-toolbar__actions" aria-label="Navegación administrativa"><a href="/admin-panel/users/" class="button button--quiet"><i class="fas fa-users" aria-hidden="true"></i> Usuarios</a><a href="/admin-panel/products/" class="button button--quiet"><i class="fas fa-box" aria-hidden="true"></i> Productos</a><a href="/admin-panel/contact-requests/" class="button button--quiet"><i class="fas fa-envelope" aria-hidden="true"></i> Consultas {% if pending_contacts > 0 %}<span class="menu-badge">{{ pending_contacts }}</span>{% endif %}</a><span class="admin-user">{{ user.username }}</span><a href="{% url 'logout' %}" class="button button--secondary"><i class="fas fa-sign-out-alt" aria-hidden="true"></i> Salir</a></nav>
     </header>
     <main class="admin-content">
@@ -27,7 +27,7 @@
         <section class="panel panel--data" aria-labelledby="recent-users-title">
             <div class="panel__header"><div><h2 id="recent-users-title" class="panel__title">Usuarios Recientes</h2><p class="panel__subtitle">Los últimos 5 usuarios registrados</p></div></div>
             <div class="admin-list">
-                {% for user in recent_users %}<article class="admin-list__row"><div class="table-primary"><span class="table-avatar" aria-hidden="true"><i class="fas fa-user"></i></span><span><strong>{{ user.username }}</strong><small>{{ user.company_name|default:"Sin empresa" }} - {{ user.email }}</small></span></div><code>{{ user.tenant_id|slice:":8" }}...</code><a href="/admin-panel/users/{{ user.id }}/edit/" class="button button--small button--quiet"><i class="fas fa-edit" aria-hidden="true"></i> Editar</a></article>{% empty %}<div class="empty-state">No hay usuarios registrados</div>{% endfor %}
+                {% for user in recent_users %}<article class="admin-list__row"><div class="table-primary"><span class="table-avatar" aria-hidden="true"><i class="fas fa-user"></i></span><span><strong>{{ user.username }}</strong><small>{{ user.company_name|default:"Sin empresa" }} - {{ user.email }}</small></span></div><code>{{ user.tenant_id|slice:":8" }}...</code><a href="/admin-panel/users/{{ user.id }}/edit/" class="button button--small button--quiet" aria-label="Editar usuario {{ user.username }}"><i class="fas fa-edit" aria-hidden="true"></i> Editar</a></article>{% empty %}<div class="empty-state">No hay usuarios registrados</div>{% endfor %}
             </div>
         </section>
     </main>

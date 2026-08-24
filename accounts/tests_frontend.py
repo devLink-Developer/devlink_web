@@ -1,9 +1,12 @@
 import re
+from datetime import date
 from html.parser import HTMLParser
 from pathlib import Path
+from types import SimpleNamespace
 from urllib.parse import urlparse
 
 from django.conf import settings
+from django.core.paginator import Paginator
 from django.template.loader import render_to_string
 from django.test import SimpleTestCase, override_settings
 
@@ -1050,6 +1053,544 @@ class FrontendContractTests(SimpleTestCase):
                             self.assertLessEqual(overflow, 0)
                         finally:
                             page.close()
+            finally:
+                browser.close()
+
+    def test_client_report_table_scroll_is_viewport_contained_and_operable(self):
+        try:
+            from playwright.sync_api import Error as PlaywrightError
+            from playwright.sync_api import sync_playwright
+        except ImportError:
+            self.skipTest("Playwright is not installed")
+
+        questions = [
+            {
+                "pregunta": "¿Cuál es el estado de mi pedido?",
+                "total_consultas": 84,
+                "usuarios_unicos": 37,
+                "ultima_consulta": "23/08/2026 18:42",
+            },
+            {
+                "pregunta": "¿Cuáles son los horarios de atención?",
+                "total_consultas": 58,
+                "usuarios_unicos": 31,
+                "ultima_consulta": "23/08/2026 17:10",
+            },
+        ]
+        client_user = SimpleNamespace(
+            username="operaciones.demo",
+            company_name="Logística Regional",
+            is_authenticated=True,
+        )
+        html = render_to_string(
+            "dashboard/whatsapp_report.html",
+            {
+                "user": client_user,
+                "fecha_reporte": "24/08/2026 02:15",
+                "total_consultas": 185,
+                "total_preguntas": 36,
+                "total_usuarios_unicos": 91,
+                "promedio_usuario": "2,03",
+                "top_10": questions,
+                "page_obj": Paginator(questions, 2).page(1),
+            },
+        )
+        css = (Path(settings.BASE_DIR) / "static" / "styles.css").read_text(
+            encoding="utf-8-sig"
+        )
+
+        with sync_playwright() as playwright:
+            try:
+                browser = playwright.chromium.launch(channel="chrome", headless=True)
+            except PlaywrightError as error:
+                self.skipTest(f"Installed Chrome is unavailable: {error}")
+
+            try:
+                page = browser.new_page(viewport={"width": 390, "height": 844})
+                page.set_content(html, wait_until="domcontentloaded")
+                page.add_style_tag(content=css)
+                mobile = page.evaluate(
+                    """
+                    () => {
+                        const rect = (element) => {
+                            const value = element.getBoundingClientRect();
+                            return { left: value.left, right: value.right, width: value.width };
+                        };
+                        const scrollers = [...document.querySelectorAll('.report-table-wrap')];
+                        const before = scrollers.map((element) => element.scrollLeft);
+                        scrollers.forEach((element) => { element.scrollLeft = 80; });
+                        const note = document.querySelector('.dashboard-note');
+                        return {
+                            viewport: innerWidth,
+                            documentWidth: document.documentElement.scrollWidth,
+                            portalOverflow: getComputedStyle(document.querySelector('.portal-page')).overflowX,
+                            shell: rect(document.querySelector('.dashboard-shell')),
+                            scrollers: scrollers.map((element, index) => ({
+                                ...rect(element),
+                                clientWidth: element.clientWidth,
+                                scrollWidth: element.scrollWidth,
+                                scrollLeftBefore: before[index],
+                                scrollLeftAfter: element.scrollLeft,
+                            })),
+                            note: {
+                                ...rect(note),
+                                clientWidth: note.clientWidth,
+                                scrollWidth: note.scrollWidth,
+                                whiteSpace: getComputedStyle(note).whiteSpace,
+                            },
+                        };
+                    }
+                    """
+                )
+                self.assertEqual(mobile["documentWidth"], mobile["viewport"])
+                self.assertEqual(mobile["portalOverflow"], "visible")
+                self.assertGreaterEqual(mobile["shell"]["left"], 0)
+                self.assertLessEqual(mobile["shell"]["right"], mobile["viewport"])
+                self.assertEqual(len(mobile["scrollers"]), 2)
+                for scroller in mobile["scrollers"]:
+                    self.assertGreaterEqual(scroller["left"], 0)
+                    self.assertLessEqual(scroller["right"], mobile["viewport"])
+                    self.assertGreater(scroller["scrollWidth"], scroller["clientWidth"])
+                    self.assertEqual(scroller["scrollLeftBefore"], 0)
+                    self.assertGreater(scroller["scrollLeftAfter"], 0)
+                self.assertLessEqual(mobile["note"]["right"], mobile["viewport"])
+                self.assertLessEqual(
+                    mobile["note"]["scrollWidth"], mobile["note"]["clientWidth"] + 1
+                )
+                self.assertEqual(mobile["note"]["whiteSpace"], "normal")
+
+                page.set_viewport_size({"width": 1440, "height": 900})
+                desktop = page.evaluate(
+                    """
+                    () => {
+                        const shell = document.querySelector('.dashboard-shell');
+                        const scroller = document.querySelector('.report-table-wrap');
+                        const box = shell.getBoundingClientRect();
+                        return {
+                            documentWidth: document.documentElement.scrollWidth,
+                            viewport: innerWidth,
+                            shellWidth: box.width,
+                            shellLeft: box.left,
+                            shellRight: box.right,
+                            scrollerClientWidth: scroller.clientWidth,
+                            scrollerScrollWidth: scroller.scrollWidth,
+                        };
+                    }
+                    """
+                )
+                self.assertEqual(desktop["documentWidth"], desktop["viewport"])
+                self.assertAlmostEqual(desktop["shellWidth"], 1180, delta=1)
+                self.assertGreaterEqual(desktop["shellLeft"], 0)
+                self.assertLessEqual(desktop["shellRight"], desktop["viewport"])
+                self.assertEqual(
+                    desktop["scrollerScrollWidth"], desktop["scrollerClientWidth"]
+                )
+            finally:
+                browser.close()
+
+    def test_all_email_templates_fit_a_390px_viewport_in_chrome(self):
+        try:
+            from playwright.sync_api import Error as PlaywrightError
+            from playwright.sync_api import sync_playwright
+        except ImportError:
+            self.skipTest("Playwright is not installed")
+
+        names = (
+            "email-bienvenida.html",
+            "email-campana-servicios-inline.html",
+            "email-campana-suite-lite-inline.html",
+            "email-campana-chatbot-webapp.html",
+            "email-preview.html",
+        )
+        root = Path(settings.BASE_DIR) / "templates"
+        with sync_playwright() as playwright:
+            try:
+                browser = playwright.chromium.launch(channel="chrome", headless=True)
+            except PlaywrightError as error:
+                self.skipTest(f"Installed Chrome is unavailable: {error}")
+            try:
+                for name in names:
+                    with self.subTest(template=name):
+                        page = browser.new_page(
+                            viewport={"width": 390, "height": 844}
+                        )
+                        try:
+                            page.set_content(
+                                (root / name).read_text(encoding="utf-8-sig"),
+                                wait_until="domcontentloaded",
+                            )
+                            widths = page.evaluate(
+                                """() => ({
+                                    document: document.documentElement.scrollWidth,
+                                    viewport: innerWidth,
+                                })"""
+                            )
+                            self.assertEqual(widths["document"], widths["viewport"])
+                        finally:
+                            page.close()
+            finally:
+                browser.close()
+
+    def test_marketing_methodology_has_only_four_custom_step_markers(self):
+        try:
+            from playwright.sync_api import Error as PlaywrightError
+            from playwright.sync_api import sync_playwright
+        except ImportError:
+            self.skipTest("Playwright is not installed")
+
+        html = self.client.get("/").content.decode("utf-8")
+        css = (Path(settings.BASE_DIR) / "static" / "styles.css").read_text(
+            encoding="utf-8-sig"
+        )
+        with sync_playwright() as playwright:
+            try:
+                browser = playwright.chromium.launch(channel="chrome", headless=True)
+            except PlaywrightError as error:
+                self.skipTest(f"Installed Chrome is unavailable: {error}")
+            try:
+                page = browser.new_page(viewport={"width": 390, "height": 844})
+                page.set_content(html, wait_until="domcontentloaded")
+                page.add_style_tag(content=css)
+                methodology = page.evaluate(
+                    """
+                    () => {
+                        const list = document.querySelector('.process-steps');
+                        const items = [...list.children];
+                        return {
+                            tag: list.tagName,
+                            itemCount: items.length,
+                            listStyleType: getComputedStyle(list).listStyleType,
+                            paddingInlineStart: getComputedStyle(list).paddingInlineStart,
+                            customMarkerCount: items.filter((item) => {
+                                const content = getComputedStyle(item, '::before').content;
+                                return content !== 'none' && content.includes('counter(step)');
+                            }).length,
+                        };
+                    }
+                    """
+                )
+                self.assertEqual(methodology["tag"], "OL")
+                self.assertEqual(methodology["itemCount"], 4)
+                self.assertEqual(methodology["customMarkerCount"], 4)
+                self.assertEqual(methodology["listStyleType"], "none")
+                self.assertEqual(methodology["paddingInlineStart"], "0px")
+            finally:
+                browser.close()
+
+    def test_content_navigation_resets_on_breakpoint_and_escape(self):
+        try:
+            from playwright.sync_api import Error as PlaywrightError
+            from playwright.sync_api import sync_playwright
+        except ImportError:
+            self.skipTest("Playwright is not installed")
+
+        surfaces = (
+            ("login", "accounts/login.html"),
+            ("documentation", "documentacion.html"),
+            ("privacy", "politicas-privacidad.html"),
+            ("terms", "terminos-servicio.html"),
+            ("legal-notice", "aviso-iluminacion.html"),
+        )
+
+        def state(page):
+            return page.evaluate(
+                """
+                () => {
+                    const toggle = document.querySelector('[data-nav-toggle]');
+                    const nav = document.querySelector('[data-nav]');
+                    return {
+                        expanded: toggle.getAttribute('aria-expanded'),
+                        open: nav.classList.contains('is-open'),
+                        inert: nav.inert,
+                        locked: document.body.classList.contains('no-scroll'),
+                        focusRestored: document.activeElement === toggle,
+                    };
+                }
+                """
+            )
+
+        with sync_playwright() as playwright:
+            try:
+                browser = playwright.chromium.launch(channel="chrome", headless=True)
+            except PlaywrightError as error:
+                self.skipTest(f"Installed Chrome is unavailable: {error}")
+            try:
+                for label, template in surfaces:
+                    with self.subTest(surface=label):
+                        page = browser.new_page(
+                            viewport={"width": 390, "height": 844}
+                        )
+                        try:
+                            page.set_content(
+                                render_to_string(template),
+                                wait_until="domcontentloaded",
+                            )
+                            page.locator("[data-nav-toggle]").click()
+                            self.assertEqual(
+                                state(page),
+                                {
+                                    "expanded": "true",
+                                    "open": True,
+                                    "inert": False,
+                                    "locked": True,
+                                    "focusRestored": True,
+                                },
+                            )
+                            page.set_viewport_size({"width": 1440, "height": 900})
+                            page.wait_for_timeout(50)
+                            self.assertEqual(
+                                state(page),
+                                {
+                                    "expanded": "false",
+                                    "open": False,
+                                    "inert": False,
+                                    "locked": False,
+                                    "focusRestored": True,
+                                },
+                            )
+                            page.set_viewport_size({"width": 390, "height": 844})
+                            page.wait_for_timeout(50)
+                            page.locator("[data-nav-toggle]").click()
+                            page.keyboard.press("Escape")
+                            self.assertEqual(
+                                state(page),
+                                {
+                                    "expanded": "false",
+                                    "open": False,
+                                    "inert": True,
+                                    "locked": False,
+                                    "focusRestored": True,
+                                },
+                            )
+                        finally:
+                            page.close()
+            finally:
+                browser.close()
+
+    def test_pinned_font_awesome_renders_admin_shield_and_ranking_icons(self):
+        try:
+            from playwright.sync_api import Error as PlaywrightError
+            from playwright.sync_api import sync_playwright
+        except ImportError:
+            self.skipTest("Playwright is not installed")
+
+        admin_user = SimpleNamespace(
+            id=1,
+            username="admin.devlink",
+            is_authenticated=True,
+        )
+        dashboard = render_to_string(
+            "admin_panel/dashboard.html",
+            {
+                "user": admin_user,
+                "total_users": 3,
+                "active_users": 3,
+                "total_products": 2,
+                "active_products": 2,
+                "total_contacts": 4,
+                "pending_contacts": 1,
+                "recent_users": [],
+            },
+        )
+        questions = [
+            {
+                "pregunta": "Estado del pedido",
+                "total_consultas": 2,
+                "usuarios_unicos": 1,
+                "ultima_consulta": "24/08/2026 02:15",
+            }
+        ]
+        report = render_to_string(
+            "admin_panel/whatsapp_report.html",
+            {
+                "user": admin_user,
+                "user_obj": SimpleNamespace(
+                    id=11, get_full_name=lambda: "Operaciones Demo"
+                ),
+                "fecha_reporte": "24/08/2026 02:15",
+                "total_consultas": 2,
+                "total_preguntas": 1,
+                "total_usuarios_unicos": 1,
+                "promedio_usuario": "2",
+                "top_10": questions,
+                "page_obj": Paginator(questions, 10).page(1),
+            },
+        )
+        css = (Path(settings.BASE_DIR) / "static" / "styles.css").read_text(
+            encoding="utf-8-sig"
+        )
+
+        with sync_playwright() as playwright:
+            try:
+                browser = playwright.chromium.launch(channel="chrome", headless=True)
+            except PlaywrightError as error:
+                self.skipTest(f"Installed Chrome is unavailable: {error}")
+            try:
+                page = browser.new_page(viewport={"width": 1440, "height": 900})
+                for html, selector, known_supported in (
+                    (dashboard, ".admin-mark i", ".fa-users"),
+                    (report, "#top-questions-title i", ".fa-list"),
+                ):
+                    page.set_content(html, wait_until="networkidle")
+                    page.add_style_tag(content=css)
+                    page.wait_for_function(
+                        """selector => {
+                            const icon = document.querySelector(selector);
+                            return icon && getComputedStyle(icon, '::before').content !== 'none';
+                        }""",
+                        arg=known_supported,
+                    )
+                    icon = page.locator(selector).evaluate(
+                        """element => ({
+                            content: getComputedStyle(element, '::before').content,
+                            fontFamily: getComputedStyle(element, '::before').fontFamily,
+                            width: element.getBoundingClientRect().width,
+                        })"""
+                    )
+                    self.assertNotIn(icon["content"], ("none", "normal", '""'))
+                    self.assertIn("Font Awesome", icon["fontFamily"])
+                    self.assertGreater(icon["width"], 0)
+            finally:
+                browser.close()
+
+    def test_admin_repeated_actions_have_distinct_rendered_accessible_names(self):
+        try:
+            from playwright.sync_api import Error as PlaywrightError
+            from playwright.sync_api import sync_playwright
+        except ImportError:
+            self.skipTest("Playwright is not installed")
+
+        admin_user = SimpleNamespace(
+            id=1,
+            username="admin.devlink",
+            is_authenticated=True,
+        )
+        recent_users = [
+            SimpleNamespace(
+                id=index,
+                username=username,
+                company_name=company,
+                email=f"{username}@example.com",
+                tenant_id=f"tenant-00{index}",
+            )
+            for index, username, company in (
+                (11, "operaciones.demo", "Logística Regional"),
+                (12, "comercial.norte", "Distribuidora Norte"),
+                (13, "soporte.patagonia", "Servicios Patagonia"),
+            )
+        ]
+        dashboard = render_to_string(
+            "admin_panel/dashboard.html",
+            {
+                "user": admin_user,
+                "total_users": 3,
+                "active_users": 3,
+                "total_products": 2,
+                "active_products": 2,
+                "total_contacts": 4,
+                "pending_contacts": 1,
+                "recent_users": recent_users,
+            },
+        )
+
+        def product_assignment(identifier, name, product_type, status):
+            product = SimpleNamespace(
+                name=name,
+                product_type=product_type,
+                get_product_type_display=lambda: {
+                    "chatbot": "Chatbot WhatsApp",
+                    "automation": "Automatización",
+                }[product_type],
+            )
+            return SimpleNamespace(
+                id=identifier,
+                product=product,
+                status=status,
+                get_status_display=lambda: {
+                    "active": "Activo",
+                    "development": "En desarrollo",
+                }[status],
+                start_date=date(2026, 2, 1),
+                end_date=None,
+            )
+
+        assignments = (
+            product_assignment(7, "Asistente WhatsApp", "chatbot", "active"),
+            product_assignment(
+                8,
+                "Sincronización operativa",
+                "automation",
+                "development",
+            ),
+        )
+        products = render_to_string(
+            "admin_panel/user_products.html",
+            {
+                "user": admin_user,
+                "user_obj": SimpleNamespace(
+                    id=11,
+                    username="operaciones.demo",
+                    email="operaciones@empresa.com.ar",
+                    tenant_id="tenant-devlink-001",
+                ),
+                "user_products": assignments,
+                "available_products": [],
+            },
+        )
+
+        with sync_playwright() as playwright:
+            try:
+                browser = playwright.chromium.launch(channel="chrome", headless=True)
+            except PlaywrightError as error:
+                self.skipTest(f"Installed Chrome is unavailable: {error}")
+            try:
+                page = browser.new_page(viewport={"width": 1440, "height": 900})
+                page.set_content(dashboard, wait_until="domcontentloaded")
+                self.assertEqual(
+                    page.locator(".admin-list__row a").evaluate_all(
+                        "elements => elements.map((element) => element.innerText.trim())"
+                    ),
+                    ["Editar", "Editar", "Editar"],
+                )
+                for username in (
+                    "operaciones.demo",
+                    "comercial.norte",
+                    "soporte.patagonia",
+                ):
+                    self.assertEqual(
+                        page.get_by_role(
+                            "link", name=f"Editar usuario {username}", exact=True
+                        ).count(),
+                        1,
+                    )
+
+                page.set_content(products, wait_until="domcontentloaded")
+                self.assertEqual(
+                    page.locator(
+                        ".admin-product-row .table-actions button"
+                    ).evaluate_all(
+                        "elements => elements.map((element) => element.innerText.trim())"
+                    ),
+                    ["Estado", "Eliminar", "Estado", "Eliminar"],
+                )
+                for product_name in (
+                    "Asistente WhatsApp",
+                    "Sincronización operativa",
+                ):
+                    self.assertEqual(
+                        page.get_by_role(
+                            "button",
+                            name=f"Cambiar estado de {product_name}",
+                            exact=True,
+                        ).count(),
+                        1,
+                    )
+                    self.assertEqual(
+                        page.get_by_role(
+                            "button", name=f"Eliminar {product_name}", exact=True
+                        ).count(),
+                        1,
+                    )
             finally:
                 browser.close()
 

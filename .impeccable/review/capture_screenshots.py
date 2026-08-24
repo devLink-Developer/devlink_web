@@ -427,6 +427,36 @@ def main() -> None:
                                     : null;
                                 const reportRefresh = document.querySelector('.report-refresh');
                                 const suiteProducts = document.querySelector('.suite-products');
+                                const processSteps = document.querySelector('.process-steps');
+                                const reportShell = document.querySelector('.dashboard-shell');
+                                const reportScrollers = [...document.querySelectorAll(
+                                    '.report-table-wrap'
+                                )];
+                                const reportNote = document.querySelector('.dashboard-note');
+                                const portalPage = document.querySelector('.portal-page');
+                                const rect = element => {
+                                    if (!element) return null;
+                                    const bounds = element.getBoundingClientRect();
+                                    return {
+                                        left: bounds.left,
+                                        right: bounds.right,
+                                        width: bounds.width,
+                                    };
+                                };
+                                const reportScrollerMetrics = reportScrollers.map(element => {
+                                    const bounds = rect(element);
+                                    const scrollLeftBefore = element.scrollLeft;
+                                    element.scrollLeft = 80;
+                                    const scrollLeftAfter = element.scrollLeft;
+                                    element.scrollLeft = 0;
+                                    return {
+                                        ...bounds,
+                                        clientWidth: element.clientWidth,
+                                        scrollWidth: element.scrollWidth,
+                                        scrollLeftBefore,
+                                        scrollLeftAfter,
+                                    };
+                                });
                                 return {
                                     title: document.title,
                                     textLength: document.body.innerText.trim().length,
@@ -446,10 +476,39 @@ def main() -> None:
                                     reportRefreshHeight: reportRefresh
                                         ? reportRefresh.getBoundingClientRect().height
                                         : null,
+                                    portalOverflowX: portalPage
+                                        ? getComputedStyle(portalPage).overflowX
+                                        : null,
+                                    reportShellRect: rect(reportShell),
+                                    reportScrollerMetrics,
+                                    reportNoteRect: rect(reportNote),
+                                    reportNoteClientWidth: reportNote?.clientWidth ?? null,
+                                    reportNoteScrollWidth: reportNote?.scrollWidth ?? null,
+                                    reportNoteWhiteSpace: reportNote
+                                        ? getComputedStyle(reportNote).whiteSpace
+                                        : null,
                                     suiteCollectionTag: suiteProducts?.tagName ?? null,
                                     suiteProductNumberCount: document.querySelectorAll(
                                         '.suite-product-number'
                                     ).length,
+                                    processCollectionTag: processSteps?.tagName ?? null,
+                                    processItemCount: processSteps?.children.length ?? null,
+                                    processListStyleType: processSteps
+                                        ? getComputedStyle(processSteps).listStyleType
+                                        : null,
+                                    processPaddingInlineStart: processSteps
+                                        ? getComputedStyle(processSteps).paddingInlineStart
+                                        : null,
+                                    processCustomMarkerCount: processSteps
+                                        ? [...processSteps.children].filter(item => {
+                                            const content = getComputedStyle(
+                                                item,
+                                                '::before'
+                                            ).content;
+                                            return content !== 'none'
+                                                && content.includes('counter(step)');
+                                        }).length
+                                        : null,
                                 };
                             }
                             """
@@ -470,6 +529,14 @@ def main() -> None:
                             raise RuntimeError(
                                 f"{surface['slug']} did not load IBM Plex Sans"
                             )
+                        if measurements["documentWidth"] != measurements["viewportWidth"]:
+                            raise RuntimeError(
+                                f"{surface['slug']} has page-level horizontal overflow"
+                            )
+                        if console_errors:
+                            raise RuntimeError(
+                                f"{surface['slug']} logged console errors: {console_errors}"
+                            )
                         if (
                             surface["slug"] == "client-report"
                             and size_name == "mobile"
@@ -478,12 +545,69 @@ def main() -> None:
                             raise RuntimeError(
                                 "client-report mobile refresh panel exceeds 96px"
                             )
+                        if surface["slug"] == "client-report":
+                            shell = measurements["reportShellRect"]
+                            scrollers = measurements["reportScrollerMetrics"]
+                            note = measurements["reportNoteRect"]
+                            if measurements["portalOverflowX"] != "visible":
+                                raise RuntimeError(
+                                    "client-report still masks horizontal overflow"
+                                )
+                            if shell["left"] < 0 or shell["right"] > viewport["width"]:
+                                raise RuntimeError(
+                                    "client-report shell exceeds viewport bounds"
+                                )
+                            if note["right"] > viewport["width"]:
+                                raise RuntimeError(
+                                    "client-report footer note exceeds viewport bounds"
+                                )
+                            if (
+                                measurements["reportNoteScrollWidth"]
+                                > measurements["reportNoteClientWidth"] + 1
+                                or measurements["reportNoteWhiteSpace"] != "normal"
+                            ):
+                                raise RuntimeError(
+                                    "client-report footer note does not wrap"
+                                )
+                            if size_name == "mobile":
+                                if len(scrollers) != 2 or any(
+                                    scroller["left"] < 0
+                                    or scroller["right"] > viewport["width"]
+                                    or scroller["scrollWidth"]
+                                    <= scroller["clientWidth"]
+                                    or scroller["scrollLeftBefore"] != 0
+                                    or scroller["scrollLeftAfter"] <= 0
+                                    for scroller in scrollers
+                                ):
+                                    raise RuntimeError(
+                                        "client-report mobile table scroll is not contained/operable"
+                                    )
+                            elif (
+                                abs(shell["width"] - 1180) > 1
+                                or any(
+                                    scroller["scrollWidth"] != scroller["clientWidth"]
+                                    for scroller in scrollers
+                                )
+                            ):
+                                raise RuntimeError(
+                                    "client-report desktop geometry changed"
+                                )
                         if surface["slug"] == "homepage" and (
                             measurements["suiteCollectionTag"] != "UL"
                             or measurements["suiteProductNumberCount"] != 0
                         ):
                             raise RuntimeError(
                                 "homepage Suite Lite semantics/numbers regressed"
+                            )
+                        if surface["slug"] == "homepage" and (
+                            measurements["processCollectionTag"] != "OL"
+                            or measurements["processItemCount"] != 4
+                            or measurements["processListStyleType"] != "none"
+                            or measurements["processPaddingInlineStart"] != "0px"
+                            or measurements["processCustomMarkerCount"] != 4
+                        ):
+                            raise RuntimeError(
+                                "homepage methodology marker semantics regressed"
                             )
 
                         path = OUTPUT / f"{surface['slug']}-{size_name}.png"

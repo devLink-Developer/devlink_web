@@ -272,3 +272,58 @@ class FrontendContractTests(SimpleTestCase):
 
         self.assertIn("flex-direction: column;", toggle_rule)
         self.assertIn("flex: 0 0 auto;", stroke_rule)
+
+    def test_article_reading_targets_clear_the_fixed_header(self):
+        css = (
+            Path(settings.BASE_DIR) / "static" / "styles.css"
+        ).read_text(encoding="utf-8")
+
+        self.assertRegex(
+            css,
+            r"(?s)section\[id\],\s*\.article-shell\[id\]\s*\{.*?"
+            r"scroll-margin-top:\s*calc\(var\(--header-height\) \+ 16px\);",
+        )
+
+    def test_mobile_reading_links_move_focus_out_of_collapsed_index(self):
+        sources = [
+            render_to_string("documentacion.html"),
+            self.client.get("/politicas-privacidad/").content.decode("utf-8"),
+            self.client.get("/terminos-servicio/").content.decode("utf-8"),
+            self.client.get("/aviso-iluminacion/").content.decode("utf-8"),
+        ]
+
+        for source in sources:
+            title = source.split("<title>", 1)[1].split("</title>", 1)[0]
+            with self.subTest(title=title):
+                self.assertIn("function focusReadingTarget(target)", source)
+                self.assertIn("const originalTabindex = focusTarget.getAttribute('tabindex')", source)
+                self.assertIn("focusTarget.setAttribute('tabindex', '-1')", source)
+                self.assertIn("focusTarget.focus({ preventScroll: true })", source)
+                self.assertIn("focusTarget.removeAttribute('tabindex')", source)
+                self.assertRegex(
+                    source,
+                    r"(?s)if \(readingBreakpoint\.matches\).*?"
+                    r"readingIndex\.removeAttribute\('open'\);.*?"
+                    r"requestAnimationFrame\(\(\) => \{.*?"
+                    r"focusReadingTarget\(target\)",
+                )
+
+    def test_programmatic_reading_scroll_respects_reduced_motion(self):
+        sources = [
+            render_to_string("documentacion.html"),
+            self.client.get("/politicas-privacidad/").content.decode("utf-8"),
+            self.client.get("/terminos-servicio/").content.decode("utf-8"),
+            self.client.get("/aviso-iluminacion/").content.decode("utf-8"),
+        ]
+
+        for source in sources:
+            title = source.split("<title>", 1)[1].split("</title>", 1)[0]
+            with self.subTest(title=title):
+                self.assertIn(
+                    "window.matchMedia('(prefers-reduced-motion: reduce)')",
+                    source,
+                )
+                self.assertIn(
+                    "behavior: reducedMotion.matches ? 'auto' : 'smooth'",
+                    source,
+                )

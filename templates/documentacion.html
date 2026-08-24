@@ -231,6 +231,7 @@
 
     const readingIndex = document.querySelector('.reading-index');
     const readingBreakpoint = window.matchMedia('(max-width: 899px)');
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     const readingSections = [...document.querySelectorAll('.article-shell[id], .article-shell [id]')];
     const readingLinks = [...document.querySelectorAll('.reading-index a[href^="#"]')];
 
@@ -240,6 +241,20 @@
       } else {
         readingIndex.setAttribute('open', '');
       }
+    }
+
+    function focusReadingTarget(target) {
+      const focusTarget = target.querySelector('h1, h2') || target;
+      const originalTabindex = focusTarget.getAttribute('tabindex');
+      focusTarget.setAttribute('tabindex', '-1');
+      focusTarget.focus({ preventScroll: true });
+      focusTarget.addEventListener('blur', () => {
+        if (originalTabindex === null) {
+          focusTarget.removeAttribute('tabindex');
+        } else {
+          focusTarget.setAttribute('tabindex', originalTabindex);
+        }
+      }, { once: true });
     }
 
     function setActiveReadingLink() {
@@ -263,10 +278,22 @@
     syncReadingIndex(readingBreakpoint);
     readingBreakpoint.addEventListener('change', syncReadingIndex);
     readingLinks.forEach(link => {
-      link.addEventListener('click', () => {
+      link.addEventListener('click', event => {
+        const target = document.querySelector(link.getAttribute('href'));
+        if (!target) return;
+
+        event.preventDefault();
         if (readingBreakpoint.matches) {
           readingIndex.removeAttribute('open');
         }
+
+        requestAnimationFrame(() => {
+          target.scrollIntoView({
+            behavior: reducedMotion.matches ? 'auto' : 'smooth',
+            block: 'start'
+          });
+          focusReadingTarget(target);
+        });
       });
     });
     window.addEventListener('scroll', setActiveReadingLink, { passive: true });

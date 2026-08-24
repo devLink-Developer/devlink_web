@@ -127,6 +127,7 @@
         if (activeEditButton) {
             activeEditButton.focus();
         }
+        activeEditButton = null;
     }
 
     // Cerrar modal al hacer clic fuera de él
@@ -138,7 +139,8 @@
 
     // Cerrar modal con tecla Escape
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
+        const modalEditar = document.getElementById('modalEditar');
+        if (e.key === 'Escape' && modalEditar.classList.contains('active')) {
             cerrarModal();
         }
     });

@@ -374,6 +374,81 @@ class FrontendContractTests(SimpleTestCase):
         ):
             self.assertIn(selector, css)
 
+    def test_editor_escape_restores_focus_only_when_dialog_is_open(self):
+        try:
+            from playwright.sync_api import Error as PlaywrightError
+            from playwright.sync_api import sync_playwright
+        except ImportError:
+            self.skipTest("Playwright is not installed")
+
+        editor_source = (
+            Path(settings.BASE_DIR) / "templates" / "dashboard" / "edit_questions.html"
+        ).read_text(encoding="utf-8")
+        editor_script = editor_source.rsplit("<script>", 1)[1].split("</script>", 1)[0]
+        harness = """
+            <button id="edit-trigger" type="button"
+                    onclick="abrirModal('answer-1', 'Respuesta 1', 'Texto actual', this)">
+                Editar
+            </button>
+            <button id="outside-control" type="button">Fuera del diálogo</button>
+            <div id="modalEditar" class="modal" aria-hidden="true">
+                <h2 id="modalTitle">Editar Respuesta</h2>
+                <form id="formEditar" action="/save/">
+                    <textarea id="modalTextarea" name="nueva_respuesta"></textarea>
+                    <input id="modalRespuestaId" name="respuesta_id">
+                    <button type="button" class="btn-cancelar">Cancelar</button>
+                    <button type="submit" class="btn-guardar">Guardar</button>
+                </form>
+            </div>
+            <div id="mensajeExito"></div>
+            <div id="mensajeError"></div>
+            <script>
+        """ + editor_script + "</script>"
+
+        with sync_playwright() as playwright:
+            try:
+                browser = playwright.chromium.launch(channel="chrome", headless=True)
+            except PlaywrightError:
+                try:
+                    browser = playwright.chromium.launch(headless=True)
+                except PlaywrightError as error:
+                    self.skipTest(f"No Chromium-compatible browser available: {error}")
+
+            try:
+                page = browser.new_page()
+                page.set_content(harness)
+
+                page.locator("#edit-trigger").click()
+                self.assertTrue(
+                    page.locator("#modalTextarea").evaluate(
+                        "el => document.activeElement === el"
+                    )
+                )
+
+                page.keyboard.press("Escape")
+                self.assertTrue(
+                    page.locator("#edit-trigger").evaluate(
+                        "el => document.activeElement === el"
+                    )
+                )
+
+                page.locator("#outside-control").click()
+                page.keyboard.press("Escape")
+                self.assertTrue(
+                    page.locator("#outside-control").evaluate(
+                        "el => document.activeElement === el"
+                    )
+                )
+
+                page.evaluate("cerrarModal()")
+                self.assertTrue(
+                    page.locator("#outside-control").evaluate(
+                        "el => document.activeElement === el"
+                    )
+                )
+            finally:
+                browser.close()
+
     def test_dashboard_mobile_shell_uses_a_valid_contained_width(self):
         css = (Path(settings.BASE_DIR) / "static" / "styles.css").read_text(
             encoding="utf-8"

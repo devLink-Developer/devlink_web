@@ -9,17 +9,25 @@
   <link rel="icon" type="image/webp" href="https://ss-static-001.esmsv.com/r/content/host2/4172d4e2978b9da867fe259f4df844c8//editor/transparente.webp" />
   <link rel="stylesheet" href="{% static 'styles.css' %}" />
 </head>
-<body>
+<body class="marketing-page">
+  <!--
+    THESIS: devLink turns complex technology into a clear path from operational friction to a confident next step, without the dark-neon technology cliché.
+    OWN-WORLD: White and cool-gray working surfaces, navy structure, electric-blue actions, restrained cyan signals, crisp one-pixel rules, and softly elevated 16px panels.
+    STORY: Visitors understand the breadth of the offer, see how services and Suite Lite connect, trust the implementation method, and request a diagnosis.
+    FIRST VIEWPORT: A wide editorial proposition and primary action occupy the left two-thirds; an existing-content capability map anchors the right and keeps the contact path visible.
+    FORM: Estándar SaaS tecnológico; seed key ee6c512a.
+    FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+  -->
   <header class="site-header" data-header>
     <div class="container nav-wrapper">
       <a href="#inicio" class="brand">
         <img src="https://ss-static-001.esmsv.com/r/content/host2/4172d4e2978b9da867fe259f4df844c8//editor/transparente.webp" alt="devLink" class="brand-logo" />
         <span class="brand-text"><span></span></span>
       </a>
-      <button class="nav-toggle" aria-label="Abrir menú" aria-expanded="false" data-nav-toggle>
+      <button class="nav-toggle" aria-label="Abrir menú" aria-expanded="false" aria-controls="marketing-navigation" data-nav-toggle>
         <span></span><span></span><span></span>
       </button>
-      <nav class="nav-links" data-nav>
+      <nav class="nav-links" id="marketing-navigation" data-nav>
         <a href="#inicio">Inicio</a>
         <a href="#servicios">Servicios</a>
         <a href="#suite-lite">Suite Lite</a>
@@ -32,7 +40,7 @@
   </header>
 
   <main id="inicio">
-    <section class="hero">
+    <section class="hero section-shell">
       <div class="container hero-grid">
         <div class="hero-copy">
           <p class="eyebrow">Migraciones, automatización y desarrollo a tu ritmo</p>
@@ -50,7 +58,7 @@
             <li>Aplicaciones web y chatbots listos para crecer contigo</li>
           </ul>
         </div>
-        <div class="hero-media">
+        <div class="hero-media capability-map">
           <div class="hero-card">
             <p class="hero-card-title">Lo que logramos juntos</p>
             <ul>
@@ -67,7 +75,7 @@
       </div>
     </section>
 
-    <section class="proof">
+    <section class="proof section-shell">
       <div class="container">
         <div class="section-header">
           <h2>Resultados claros para tus implementaciones</h2>
@@ -90,7 +98,7 @@
       </div>
     </section>
 
-    <section id="servicios" class="services">
+    <section id="servicios" class="services section-shell">
       <div class="container">
         <div class="section-header">
           <h2>Servicios que bajan la complejidad tecnológica</h2>
@@ -141,7 +149,7 @@
       </div>
     </section>
 
-    <section id="suite-lite" class="suite-lite" aria-labelledby="suite-lite-title">
+    <section id="suite-lite" class="suite-lite section-shell" aria-labelledby="suite-lite-title">
       <div class="container">
         <div class="suite-intro">
           <div>
@@ -201,7 +209,7 @@
       </div>
     </section>
 
-    <section id="soluciones" class="solutions">
+    <section id="soluciones" class="solutions section-shell">
       <div class="container">
         <div class="section-header">
           <h2>Cómo conectamos tus procesos de punta a punta</h2>
@@ -239,7 +247,7 @@
       </div>
     </section>
 
-    <section id="metodologia" class="process">
+    <section id="metodologia" class="process section-shell">
       <div class="container">
         <div class="section-header">
           <h2>Metodología centrada en tu equipo</h2>
@@ -276,7 +284,7 @@
       </div>
     </section>
 
-    <section id="contacto" class="contact">
+    <section id="contacto" class="contact section-shell">
       <div class="container contact-grid">
         <div class="contact-copy">
           <p class="eyebrow">Trabajemos juntos</p>
@@ -409,12 +417,23 @@
       document.body.classList.toggle('no-scroll', !expanded);
     });
 
+    const closeNavigation = () => {
+      nav.classList.remove('is-open');
+      navToggle.setAttribute('aria-expanded', 'false');
+      document.body.classList.remove('no-scroll');
+    };
+
     navLinks.forEach(link => {
       link.addEventListener('click', () => {
-        nav.classList.remove('is-open');
-        navToggle.setAttribute('aria-expanded', 'false');
-        document.body.classList.remove('no-scroll');
+        closeNavigation();
       });
+    });
+
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && nav.classList.contains('is-open')) {
+        closeNavigation();
+        navToggle.focus();
+      }
     });
 
     document.querySelector('[data-year]').textContent = new Date().getFullYear();

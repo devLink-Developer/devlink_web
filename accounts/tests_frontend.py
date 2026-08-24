@@ -1,10 +1,62 @@
 from pathlib import Path
 
 from django.conf import settings
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, override_settings
 
 
+@override_settings(STATIC_ROOT=Path(settings.BASE_DIR) / "static")
 class FrontendContractTests(SimpleTestCase):
+    def test_home_preserves_sections_and_contact_fields(self):
+        response = self.client.get("/")
+        self.assertEqual(response.status_code, 200)
+        for section_id in (
+            "inicio",
+            "servicios",
+            "suite-lite",
+            "soluciones",
+            "metodologia",
+            "contacto",
+        ):
+            self.assertContains(response, f'id="{section_id}"')
+        for field in ("nombre", "email", "empresa", "proyecto", "newsletter"):
+            self.assertContains(response, f'name="{field}"')
+
+    def test_home_exposes_marketing_layout_contract(self):
+        response = self.client.get("/")
+        source = response.content.decode("utf-8")
+
+        self.assertIn('<body class="marketing-page">', source)
+        self.assertRegex(
+            source,
+            r'<body class="marketing-page">\s*<!--\s*THESIS:',
+        )
+        self.assertIn("FORM: Estándar SaaS tecnológico; seed key ee6c512a.", source)
+        self.assertIn(
+            "FINISH: unreviewed and undocumented is unfinished; this build ends "
+            "with the finish review, the verdict, DESIGN.md, and every shipping "
+            "raster carrying its provenance",
+            source,
+        )
+        for class_name in (
+            "section-shell",
+            "capability-map",
+            "service-grid",
+            "suite-products",
+            "process-steps",
+            "contact-grid",
+        ):
+            self.assertIn(class_name, source)
+        for attribute in ("data-header", "data-nav-toggle", "data-nav"):
+            self.assertIn(attribute, source)
+
+    def test_mobile_navigation_supports_escape_dismissal(self):
+        source = (
+            Path(settings.BASE_DIR) / "templates" / "index.html"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("event.key === 'Escape'", source)
+        self.assertIn("navToggle.focus()", source)
+
     def test_base_loads_shared_styles_and_brand(self):
         source = (
             Path(settings.BASE_DIR) / "templates" / "base.html"

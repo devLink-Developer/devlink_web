@@ -1,0 +1,246 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-24T03:01:31.7857458-03:00",
+  "title": "Design System: devLink",
+  "extensions": {
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Proposición dominante en heroes de marketing y acceso."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Títulos de página, documentación y secciones principales."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Encabezados de panel, tarjeta y grupo operativo."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Lectura, descripción y contenido funcional."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Cabeceras de tabla, estados y metadatos compactos."
+      },
+      "mono": {
+        "displayName": "Mono",
+        "purpose": "Tenant IDs, DNS y valores de implementación."
+      }
+    },
+    "shadows": [
+      {
+        "name": "elevation-low",
+        "value": "0 10px 26px -18px rgba(15, 55, 95, 0.28)",
+        "purpose": "Feedback sutil y controles sobre una superficie cercana."
+      },
+      {
+        "name": "elevation-medium",
+        "value": "0 20px 44px -26px rgba(7, 22, 45, 0.32)",
+        "purpose": "Paneles elevados, toasts y formularios prioritarios."
+      },
+      {
+        "name": "elevation-high",
+        "value": "0 28px 64px -30px rgba(7, 22, 45, 0.42)",
+        "purpose": "Overlays y artefactos de foco excepcional."
+      },
+      {
+        "name": "focus-ring",
+        "value": "0 0 0 3px rgba(18, 100, 246, 0.32)",
+        "purpose": "Halo complementario al contorno visible de foco."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Entrada, salida y respuesta de controles sin animar layout."
+      },
+      {
+        "name": "control-response",
+        "value": "180ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Transformación y opacidad de botones y campos."
+      },
+      {
+        "name": "surface-reveal",
+        "value": "360ms–820ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Revelado inicial contenido, solo cuando el usuario no solicita movimiento reducido."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "admin-wide",
+        "value": "1080px"
+      },
+      {
+        "name": "marketing-wide",
+        "value": "1020px"
+      },
+      {
+        "name": "navigation",
+        "value": "960px"
+      },
+      {
+        "name": "reading-stack",
+        "value": "899px"
+      },
+      {
+        "name": "operation-stack",
+        "value": "760px"
+      },
+      {
+        "name": "mobile",
+        "value": "680px"
+      },
+      {
+        "name": "compact-mobile",
+        "value": "520px"
+      },
+      {
+        "name": "narrow-mobile",
+        "value": "420px"
+      },
+      {
+        "name": "email",
+        "value": "600px–620px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Acción principal de una página, panel o formulario.",
+      "html": "<button class=\"ds-btn-primary\" type=\"button\">Guardar cambios</button>",
+      "css": ".ds-btn-primary { display:inline-flex; min-height:44px; align-items:center; justify-content:center; gap:.55rem; padding:.7rem 1rem; border:1px solid transparent; border-radius:10px; background:#1264f6; color:#fff; box-shadow:0 12px 24px -16px rgba(18,100,246,.75); font-family:\"IBM Plex Sans\",\"Segoe UI\",sans-serif; font-size:1rem; font-weight:700; line-height:1.2; cursor:pointer; transition:transform 180ms cubic-bezier(.16,1,.3,1), opacity 180ms cubic-bezier(.16,1,.3,1), background 180ms cubic-bezier(.16,1,.3,1); } .ds-btn-primary:hover { background:#0756db; transform:translateY(-1px); } .ds-btn-primary:active { transform:translateY(0) scale(.985); } .ds-btn-primary:focus-visible { outline:2px solid #1264f6; outline-offset:2px; box-shadow:0 0 0 3px rgba(18,100,246,.32); }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Acción alternativa o navegación contextual de prioridad media.",
+      "html": "<button class=\"ds-btn-secondary\" type=\"button\">Cancelar</button>",
+      "css": ".ds-btn-secondary { display:inline-flex; min-height:44px; align-items:center; justify-content:center; gap:.55rem; padding:.7rem 1rem; border:1px solid #aebed2; border-radius:10px; background:#fff; color:#0c2343; font-family:\"IBM Plex Sans\",\"Segoe UI\",sans-serif; font-size:1rem; font-weight:700; line-height:1.2; cursor:pointer; transition:transform 180ms cubic-bezier(.16,1,.3,1), background 180ms cubic-bezier(.16,1,.3,1); } .ds-btn-secondary:hover { background:#eef3f9; transform:translateY(-1px); } .ds-btn-secondary:active { transform:translateY(0) scale(.985); } .ds-btn-secondary:focus-visible { outline:2px solid #1264f6; outline-offset:2px; box-shadow:0 0 0 3px rgba(18,100,246,.32); }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "Campo de datos compartido por autenticación, portal y administración.",
+      "html": "<label class=\"ds-field-group\"><span class=\"ds-field-label\">Empresa</span><input class=\"ds-field\" type=\"text\" placeholder=\"Nombre de tu empresa\"></label>",
+      "css": ".ds-field-group { display:grid; gap:.45rem; color:#0b1930; font-family:\"IBM Plex Sans\",\"Segoe UI\",sans-serif; } .ds-field-label { font-size:.9rem; font-weight:700; } .ds-field { width:100%; min-height:44px; padding:.7rem .85rem; border:1px solid #aebed2; border-radius:12px; background:#fff; color:#0b1930; font:inherit; line-height:1.4; transition:border-color 180ms cubic-bezier(.16,1,.3,1); } .ds-field::placeholder { color:#5d6b82; opacity:1; } .ds-field:hover { border-color:#1392ff; } .ds-field:focus-visible { border-color:#1264f6; outline:2px solid #1264f6; outline-offset:2px; box-shadow:0 0 0 3px rgba(18,100,246,.32); }"
+    },
+    {
+      "name": "Panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "Contenedor canónico para formularios, contenido y agrupaciones operativas.",
+      "html": "<section class=\"ds-panel\"><header class=\"ds-panel-header\"><h3 class=\"ds-panel-title\">Información del producto</h3></header><div class=\"ds-panel-body\">Contenido del panel</div></section>",
+      "css": ".ds-panel { overflow:hidden; border:1px solid #d8e1ed; border-radius:16px; background:#fff; color:#0b1930; font-family:\"IBM Plex Sans\",\"Segoe UI\",sans-serif; } .ds-panel-header,.ds-panel-body { padding:1.5rem; } .ds-panel-header { display:flex; align-items:center; justify-content:space-between; gap:1rem; border-bottom:1px solid #d8e1ed; } .ds-panel-title { margin:0; color:#0b1930; font-size:1.05rem; font-weight:700; line-height:1.3; letter-spacing:-.025em; } .ds-panel:focus-within { border-color:#aebed2; }"
+    },
+    {
+      "name": "Application Navigation",
+      "kind": "nav",
+      "description": "Navegación compacta con estado activo tonal y foco visible.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Principal\"><a class=\"ds-nav-item ds-nav-item-active\" href=\"#\" aria-current=\"page\">Dashboard</a><a class=\"ds-nav-item\" href=\"#\">Productos</a></nav>",
+      "css": ".ds-nav { display:flex; align-items:center; gap:.35rem; font-family:\"IBM Plex Sans\",\"Segoe UI\",sans-serif; } .ds-nav-item { min-height:40px; display:inline-flex; align-items:center; padding:.55rem .8rem; border-radius:10px; color:#40506a; font-size:.91rem; font-weight:650; text-decoration:none; } .ds-nav-item:hover { background:#eef3f9; color:#0b1930; } .ds-nav-item-active { background:#e8f0ff; color:#10366f; } .ds-nav-item:focus-visible { outline:2px solid #1264f6; outline-offset:2px; box-shadow:0 0 0 3px rgba(18,100,246,.32); }"
+    },
+    {
+      "name": "Active Status",
+      "kind": "chip",
+      "refersTo": "status-active",
+      "description": "Estado positivo compacto para productos, usuarios y operaciones.",
+      "html": "<span class=\"ds-status-active\"><span class=\"ds-status-dot\" aria-hidden=\"true\"></span>Activo</span>",
+      "css": ".ds-status-active { display:inline-flex; width:fit-content; align-items:center; gap:.3rem; padding:.3rem .55rem; border:1px solid #8fcda8; border-radius:999px; background:#eaf8f0; color:#146339; font-family:\"IBM Plex Sans\",\"Segoe UI\",sans-serif; font-size:.75rem; font-weight:750; line-height:1.2; } .ds-status-dot { width:.45rem; height:.45rem; border-radius:50%; background:#146339; } .ds-status-active:focus-visible { outline:2px solid #1264f6; outline-offset:2px; }"
+    },
+    {
+      "name": "Metric Card",
+      "kind": "card",
+      "description": "Resumen numérico escaneable para portal y dashboards.",
+      "html": "<article class=\"ds-metric\"><span class=\"ds-metric-icon\" aria-hidden=\"true\">↗</span><div><p class=\"ds-metric-label\">Productos activos</p><p class=\"ds-metric-value\">12</p></div></article>",
+      "css": ".ds-metric { display:flex; min-width:0; align-items:center; gap:.9rem; padding:1.15rem; border:1px solid #d8e1ed; border-radius:16px; background:#fff; color:#0b1930; font-family:\"IBM Plex Sans\",\"Segoe UI\",sans-serif; } .ds-metric-icon { display:grid; width:2.75rem; height:2.75rem; flex:0 0 auto; place-items:center; border-radius:12px; background:#edf5ff; color:#1264f6; font-size:1.05rem; } .ds-metric-label { margin:0; color:#40506a; font-size:.8rem; font-weight:700; } .ds-metric-value { margin:.2rem 0 0; color:#07162d; font-size:clamp(1.5rem,3vw,2rem); font-weight:780; line-height:1.2; font-variant-numeric:tabular-nums; }"
+    },
+    {
+      "name": "Data Table",
+      "kind": "custom",
+      "description": "Tabla operativa contenida que preserva columnas y desplaza horizontalmente en móvil.",
+      "html": "<div class=\"ds-table-scroll\"><table class=\"ds-table\"><thead><tr><th>Usuario</th><th>Estado</th></tr></thead><tbody><tr><td>acme-admin</td><td>Activo</td></tr></tbody></table></div>",
+      "css": ".ds-table-scroll { width:100%; overflow-x:auto; border:1px solid #d8e1ed; border-radius:16px; background:#fff; font-family:\"IBM Plex Sans\",\"Segoe UI\",sans-serif; } .ds-table { width:100%; min-width:640px; border-collapse:collapse; color:#0b1930; font-variant-numeric:tabular-nums; } .ds-table th,.ds-table td { padding:.85rem 1rem; border-bottom:1px solid #d8e1ed; text-align:left; vertical-align:middle; } .ds-table th { background:#eef3f9; color:#40506a; font-size:.78rem; font-weight:750; letter-spacing:.045em; text-transform:uppercase; } .ds-table tbody tr:last-child td { border-bottom:0; } .ds-table tbody tr:hover { background:#f8faff; } .ds-table:focus-visible { outline:2px solid #1264f6; outline-offset:2px; }"
+    },
+    {
+      "name": "Capability Map",
+      "kind": "custom",
+      "description": "Firma de marketing que representa infraestructura mediante línea, nodos y contenido real.",
+      "html": "<section class=\"ds-capability\"><div class=\"ds-capability-block\"><span class=\"ds-capability-node\" aria-hidden=\"true\"></span><h3>Lo que logramos juntos</h3><p>Procesos conectados y operables.</p></div><div class=\"ds-capability-block ds-capability-signal\"><span class=\"ds-capability-node\" aria-hidden=\"true\"></span><strong>Infraestructura devLink</strong></div></section>",
+      "css": ".ds-capability { position:relative; display:grid; padding:2rem; border-radius:16px; background:#07162d; color:#dfeafa; box-shadow:0 34px 70px -42px rgba(7,22,45,.76); font-family:\"IBM Plex Sans\",\"Segoe UI\",sans-serif; } .ds-capability::before { content:\"\"; position:absolute; top:3rem; bottom:3rem; left:2.25rem; width:1px; background:linear-gradient(#06d6ff,rgba(110,196,255,.25)); } .ds-capability-block { position:relative; padding:.35rem 0 1.8rem 2.45rem; border-bottom:1px solid rgba(216,225,237,.18); } .ds-capability-block h3,.ds-capability-block p { margin:0; } .ds-capability-block h3 { color:#fff; font-size:1.08rem; } .ds-capability-block p { margin-top:.7rem; } .ds-capability-node { position:absolute; top:.65rem; left:.9rem; width:9px; height:9px; border:2px solid #06d6ff; border-radius:50%; background:#07162d; } .ds-capability-signal { padding-top:1.7rem; border-bottom:0; color:#3df0ff; font-size:.78rem; letter-spacing:.08em; text-transform:uppercase; } .ds-capability-signal .ds-capability-node { top:2rem; }"
+    },
+    {
+      "name": "Email Card",
+      "kind": "card",
+      "description": "Contenedor de campaña seguro para clientes de correo y coherente con la paleta web.",
+      "html": "<table class=\"ds-email-card\" role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\"><tr><td class=\"ds-email-header\"><strong>devLink</strong><p>Imaginá. Nosotros lo hacemos posible</p></td></tr><tr><td class=\"ds-email-body\">Contenido del mensaje</td></tr></table>",
+      "css": ".ds-email-card { width:100%; max-width:600px; overflow:hidden; border:1px solid #dbe7f3; border-radius:16px; border-collapse:separate; border-spacing:0; background:#fff; color:#334155; font-family:Tahoma,Verdana,sans-serif; line-height:1.6; } .ds-email-header { padding:40px 30px; background:#07162d; color:#fff; text-align:center; } .ds-email-header p { margin:8px 0 0; color:#fff; } .ds-email-body { padding:40px 30px; } .ds-email-card a:focus-visible { outline:2px solid #1264f6; outline-offset:2px; } @media (max-width:620px) { .ds-email-card { border-radius:0; } .ds-email-header,.ds-email-body { padding-left:24px; padding-right:24px; } }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Infraestructura clara",
+    "overview": "devLink usa un **Estándar SaaS tecnológico** sereno, riguroso y orientado a la implementación. La interfaz hace visible la estructura sin volverla protagonista: campos de trabajo blancos y gris frío, reglas finas, jerarquía tipográfica contundente y geometría que recuerda sistemas, conexiones y código. La expresión comercial puede ser amplia y editorial; las superficies operativas aumentan la densidad sin cambiar de lenguaje.\n\nLa continuidad importa desde la captación hasta la operación. Marketing persuade con una propuesta espaciosa y un mapa de capacidades oscuro; autenticación, documentación y páginas legales priorizan comprensión; el portal, los dashboards y la administración priorizan escaneo y acción; los emails conservan la misma paleta y disciplina con una composición segura para clientes de correo. El sistema rechaza el cliché tecnológico oscuro con neón, la numeración decorativa de productos y el exceso de resplandores o paneles bento sin función.",
+    "keyCharacteristics": [
+      "Blanco y gris frío como campo de trabajo dominante.",
+      "Azul marino para estructura, azul eléctrico para acciones y cian como señal contenida.",
+      "IBM Plex Sans, jerarquía compacta y geometría nativa de código.",
+      "Reglas nítidas de un píxel y paneles de 16px suavemente elevados.",
+      "Densidad ajustada a cada superficie, con movimiento breve y prescindible."
+    ],
+    "rules": [
+      {
+        "name": "The Contained Signal Rule",
+        "body": "El cian indica una conexión, un nodo o una orientación puntual; nunca forma resplandores ambientales ni compite con la acción azul.",
+        "section": "colors"
+      },
+      {
+        "name": "The Operational Canvas Rule",
+        "body": "Las superficies de trabajo permanecen blancas o gris frío; el marino se reserva para estructura e inversión deliberada, no para convertir toda la interfaz en modo oscuro.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Technical Voice Rule",
+        "body": "IBM Plex Sans gobierna toda superficie web; el mono aparece solo cuando el contenido es realmente técnico y el stack de email cambia únicamente por compatibilidad del medio.",
+        "section": "typography"
+      },
+      {
+        "name": "The Surface Density Rule",
+        "body": "Una misma gramática visual admite más aire en marketing y más información en dashboards; nunca se comprime una superficie persuasiva ni se infla una tabla operativa para forzar uniformidad.",
+        "section": "layout"
+      },
+      {
+        "name": "The Border-First Rule",
+        "body": "Todo panel se entiende primero por superficie y regla; la sombra solo comunica elevación real o prioridad temporal.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Honest Geometry Rule",
+        "body": "El radio expresa tipo y agrupación: panel, campo, control o estado. No se mezclan cápsulas, círculos y tarjetas redondeadas para fabricar variedad.",
+        "section": "shapes"
+      }
+    ],
+    "dos": [
+      "**Do** mantener el blanco y el gris frío como campo dominante y usar el marino para estructura deliberada.",
+      "**Do** reservar el azul eléctrico para acciones y foco, y el cian para señales pequeñas con significado.",
+      "**Do** conservar reglas de un píxel, radios de 10/12/16px y espaciado basado en incrementos de 0.5rem.",
+      "**Do** adaptar la densidad al modo: persuadir, leer u operar, sin romper la continuidad visual.",
+      "**Do** mantener foco visible, orden semántico, objetivos táctiles de al menos 44px y movimiento reducido equivalente.",
+      "**Do** contener tablas anchas y preservar el orden, los nombres y la legibilidad del contenido en móvil."
+    ],
+    "donts": [
+      "**Don't** convertir la marca en un cliché tecnológico oscuro con neón o fondos negros permanentes.",
+      "**Don't** añadir numeración decorativa a productos, servicios o tarjetas que no sean pasos reales.",
+      "**Don't** usar resplandores pesados, mosaicos bento genéricos o gradientes ambientales para simular complejidad.",
+      "**Don't** convertir cada etiqueta o acción en una píldora; la cápsula pertenece a estados compactos.",
+      "**Don't** animar propiedades de layout ni ocultar información esencial detrás del movimiento.",
+      "**Don't** cambiar IBM Plex Sans en la web o introducir fuentes de terceros sin licencia y procedencia registradas."
+    ]
+  }
+}

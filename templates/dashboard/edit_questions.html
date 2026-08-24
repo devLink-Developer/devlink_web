@@ -1,532 +1,241 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Edición de Preguntas y Respuestas - {{ user.company_name }}</title>
-    <link rel="icon" type="image/webp" href="https://ss-static-001.esmsv.com/r/content/host2/4172d4e2978b9da867fe259f4df844c8//editor/transparente.webp">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+{% extends 'base.html' %}
 
-        body {
-            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-            background: #f3f4f6;
-            color: #111827;
-            padding: 20px;
-        }
+{% block title %}Edición de Preguntas y Respuestas - {{ user.company_name }}{% endblock %}
 
-        .page-wrapper {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            color: white;
-            padding: 24px 28px;
-            border-radius: 12px;
-            margin-bottom: 24px;
-            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.3);
-        }
-
-        .header-title {
-            font-size: 26px;
-            font-weight: 700;
-            margin-bottom: 6px;
-        }
-
-        .header-subtitle {
-            font-size: 14px;
-            opacity: 0.9;
-        }
-
-        .header-meta {
-            margin-top: 8px;
-            font-size: 12px;
-            opacity: 0.9;
-        }
-
-        .header-actions {
-            margin-top: 12px;
-        }
-
-        .btn-back {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 6px;
-            text-decoration: none;
-            font-size: 14px;
-            transition: background 0.2s;
-        }
-
-        .btn-back:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-
-        form {
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-        }
-
-        .menu-card {
-            background: white;
-            border-radius: 12px;
-            padding: 20px 22px;
-            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
-            border: 1px solid #e5e7eb;
-        }
-
-        .menu-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-
-        .menu-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: #111827;
-        }
-
-        .menu-subtitle {
-            font-size: 13px;
-            color: #6b7280;
-            margin-top: 4px;
-            white-space: pre-line;
-        }
-
-        .menu-badge {
-            font-size: 12px;
-            padding: 4px 10px;
-            border-radius: 999px;
-            background: #eef2ff;
-            color: #4f46e5;
-            font-weight: 600;
-        }
-
-        .respuesta-block {
-            margin-top: 12px;
-            padding-top: 12px;
-            border-top: 1px dashed #e5e7eb;
-        }
-
-        .respuesta-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 6px;
-            gap: 8px;
-        }
-
-        .respuesta-id {
-            font-size: 12px;
-            font-weight: 600;
-            color: #4b5563;
-        }
-
-        .respuesta-actual-label {
-            font-size: 12px;
-            color: #6b7280;
-        }
-
-        .respuesta-actual-text {
-            font-size: 13px;
-            color: #374151;
-            background: #f9fafb;
-            padding: 8px 10px;
-            border-radius: 6px;
-            white-space: pre-line;
-            flex: 1;
-        }
-
-        .btn-editar {
-            background: #3b82f6;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            transition: background 0.2s;
-        }
-
-        .btn-editar:hover {
-            background: #2563eb;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: white;
-            border-radius: 12px;
-            padding: 24px;
-            max-width: 600px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-
-        .modal-header {
-            font-size: 18px;
-            font-weight: 600;
-            color: #111827;
-            margin-bottom: 16px;
-        }
-
-        .modal-label {
-            font-size: 13px;
-            font-weight: 600;
-            color: #374151;
-            margin-bottom: 8px;
-            display: block;
-        }
-
-        .modal-textarea {
-            width: 100%;
-            min-height: 200px;
-            resize: vertical;
-            padding: 12px;
-            font-family: inherit;
-            font-size: 13px;
-            border-radius: 8px;
-            border: 1px solid #d1d5db;
-            outline: none;
-            transition: border-color 0.15s ease, box-shadow 0.15s ease;
-            margin-bottom: 16px;
-        }
-
-        .modal-textarea:focus {
-            border-color: #4f46e5;
-            box-shadow: 0 0 0 1px #4f46e5;
-        }
-
-        .modal-actions {
-            display: flex;
-            gap: 12px;
-            justify-content: flex-end;
-        }
-
-        .btn-cancelar {
-            background: #e5e7eb;
-            color: #374151;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-
-        .btn-cancelar:hover {
-            background: #d1d5db;
-        }
-
-        .btn-guardar {
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-
-        .btn-guardar:hover {
-            opacity: 0.9;
-        }
-
-        .respuesta-nueva-label {
-            font-size: 12px;
-            color: #4b5563;
-            margin-bottom: 4px;
-            display: block;
-        }
-
-        textarea {
-            width: 100%;
-            min-height: 70px;
-            resize: vertical;
-            padding: 8px 10px;
-            font-family: inherit;
-            font-size: 13px;
-            border-radius: 8px;
-            border: 1px solid #d1d5db;
-            outline: none;
-            transition: border-color 0.15s ease, box-shadow 0.15s ease;
-        }
-
-        textarea:focus {
-            border-color: #4f46e5;
-            box-shadow: 0 0 0 1px #4f46e5;
-        }
-
-        .no-respuestas {
-            font-size: 12px;
-            color: #9ca3af;
-            font-style: italic;
-        }
-
-        .submit-bar {
-            position: sticky;
-            bottom: 0;
-            margin-top: 8px;
-            padding-top: 12px;
-        }
-
-        .submit-inner {
-            background: rgba(243, 244, 246, 0.9);
-            border-top: 1px solid #e5e7eb;
-            backdrop-filter: blur(6px);
-            padding: 12px 0;
-            display: flex;
-            justify-content: flex-end;
-            gap: 12px;
-        }
-
-        .btn {
-            appearance: none;
-            border-radius: 999px;
-            padding: 10px 20px;
-            font-size: 14px;
-            font-weight: 600;
-            border: none;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .btn-secondary {
-            background: white;
-            color: #4b5563;
-            border: 1px solid #d1d5db;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            color: white;
-            box-shadow: 0 8px 18px rgba(79, 70, 229, 0.35);
-        }
-
-        .btn-icon {
-            font-size: 16px;
-        }
-
-        .hint {
-            font-size: 12px;
-            color: #6b7280;
-            margin-top: 4px;
-        }
-    </style>
-</head>
-<body>
-<div class="page-wrapper">
-    <div class="header">
-        <div class="header-title">Edición de Preguntas y Respuestas</div>
-        <div class="header-subtitle">{{ user.company_name|default:"Bot WhatsApp" }}</div>
-        <div class="header-meta">Formulario generado el {{ fecha_actual }}</div>
-        <div class="header-actions">
-            <a href="{% url 'dashboard' %}" class="btn-back">
-                ← Volver al Dashboard
+{% block content %}
+<div class="app-shell portal-page editor-page">
+    <header class="app-header">
+        <div class="app-header__brand">
+            <span class="app-brand-mark" aria-hidden="true"><i class="fas fa-code"></i></span>
+            <span>DevLink Portal</span>
+        </div>
+        <div class="app-header__actions">
+            <a href="{% url 'dashboard' %}" class="button button--quiet button--small">
+                <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                Volver al Dashboard
+            </a>
+            <span class="app-user-context">{{ user.company_name|default:user.username }}</span>
+            <a href="{% url 'logout' %}" class="button button--quiet button--small">
+                <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
+                Salir
             </a>
         </div>
-    </div>
+    </header>
 
-    {% for menu in menus %}
-        <div class="menu-card">
-            <div class="menu-header">
-                <div>
-                    <div class="menu-title">{{ menu.menu|default:"Sin título" }}</div>
-                    {% if menu.submenu %}
-                    <div class="menu-subtitle">{{ menu.submenu }}</div>
+    <main class="dashboard-shell">
+        <div class="page-heading">
+            <div>
+                <h1>Edición de Preguntas y Respuestas</h1>
+                <p>{{ user.company_name|default:"Bot WhatsApp" }}</p>
+                <p class="page-heading__meta">Formulario generado el {{ fecha_actual }}</p>
+            </div>
+        </div>
+
+        <div class="editor-list">
+            {% for menu in menus %}
+            <section class="panel editor-card" aria-labelledby="menu-{{ forloop.counter }}-title">
+                <div class="panel__header editor-card__header">
+                    <div>
+                        <h2 class="panel__title" id="menu-{{ forloop.counter }}-title">{{ menu.menu|default:"Sin título" }}</h2>
+                        {% if menu.submenu %}
+                        <p class="editor-card__subtitle">{{ menu.submenu }}</p>
+                        {% endif %}
+                    </div>
+                    <span class="menu-badge">Menú ID: {{ menu.id|default:"N/A" }}</span>
+                </div>
+
+                <div class="panel__body editor-card__body">
+                    {% if not menu.respuestas %}
+                    <p class="no-respuestas">No hay respuestas configuradas para este menú.</p>
+                    {% else %}
+                        {% for resp in menu.respuestas %}
+                        <article class="respuesta-block">
+                            <div class="respuesta-header">
+                                <h3 class="respuesta-id">
+                                    {% if resp.opcion %}
+                                        Opción {{ resp.opcion }} - {{ resp.descripcion }}
+                                    {% else %}
+                                        Respuesta ID: {{ resp.id|default:forloop.counter }}
+                                    {% endif %}
+                                </h3>
+                            </div>
+                            <div class="respuesta-row">
+                                <div class="respuesta-actual-text">{{ resp.respuesta|default:"Sin respuesta" }}</div>
+                                <button type="button" class="button button--secondary button--small btn-editar" onclick="abrirModal('{{ resp.id|default:forloop.counter }}', '{% if resp.opcion %}Opción {{ resp.opcion }} - {{ resp.descripcion|escapejs }}{% else %}Respuesta ID: {{ resp.id|default:forloop.counter }}{% endif %}', '{{ resp.respuesta|default:""|escapejs }}', this)">
+                                    <i class="fas fa-pen" aria-hidden="true"></i>
+                                    Editar
+                                </button>
+                            </div>
+                        </article>
+                        {% endfor %}
                     {% endif %}
                 </div>
-                <div class="menu-badge">Menú ID: {{ menu.id|default:"N/A" }}</div>
-            </div>
-            
-            {% if not menu.respuestas %}
-            <div class="no-respuestas">
-                No hay respuestas configuradas para este menú.
-            </div>
-            {% else %}
-                {% for resp in menu.respuestas %}
-                <div class="respuesta-block">
-                    <div class="respuesta-header">
-                        <div class="respuesta-id">
-                            {% if resp.opcion %}
-                                Opción {{ resp.opcion }} - {{ resp.descripcion }}
-                            {% else %}
-                                Respuesta ID: {{ resp.id|default:forloop.counter }}
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div style="display: flex; align-items: start; gap: 10px;">
-                        <div class="respuesta-actual-text">{{ resp.respuesta|default:"Sin respuesta" }}</div>
-                        <button type="button" class="btn-editar" onclick="abrirModal('{{ resp.id|default:forloop.counter }}', '{% if resp.opcion %}Opción {{ resp.opcion }} - {{ resp.descripcion|escapejs }}{% else %}Respuesta ID: {{ resp.id|default:forloop.counter }}{% endif %}', '{{ resp.respuesta|default:""|escapejs }}')">
-                            ✏️ Editar
-                        </button>
-                    </div>
-                </div>
-                {% endfor %}
-            {% endif %}
+            </section>
+            {% endfor %}
         </div>
-        {% endfor %}
+    </main>
 
-    </div>
-
-    <div class="modal" id="modalEditar">
+    <div class="modal" id="modalEditar" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-hidden="true">
         <div class="modal-content">
-            <div class="modal-header" id="modalTitle">Editar Respuesta</div>
+            <h2 class="modal-header" id="modalTitle">Editar Respuesta</h2>
             <form id="formEditar" method="post" action="{% url 'save_question_client' %}">
                 {% csrf_token %}
-                <label class="modal-label">Respuesta:</label>
-                <textarea id="modalTextarea" class="modal-textarea" name="nueva_respuesta"></textarea>
+                <div class="field-group">
+                    <label class="modal-label" for="modalTextarea">Respuesta:</label>
+                    <textarea id="modalTextarea" class="field modal-textarea" name="nueva_respuesta"></textarea>
+                </div>
                 <input type="hidden" id="modalRespuestaId" name="respuesta_id">
                 <div class="modal-actions">
-                    <button type="button" class="btn-cancelar" onclick="cerrarModal()">Cancelar</button>
-                    <button type="submit" class="btn-guardar">💾 Guardar</button>
+                    <button type="button" class="button button--secondary btn-cancelar" onclick="cerrarModal()">Cancelar</button>
+                    <button type="submit" class="button button--primary btn-guardar" id="save-question">
+                        <i class="fas fa-floppy-disk" aria-hidden="true"></i>
+                        Guardar
+                    </button>
                 </div>
             </form>
         </div>
     </div>
-    
-    <div id="mensajeExito" style="display: none; position: fixed; top: 20px; right: 20px; background: #10b981; color: white; padding: 16px 24px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 9999;">
-        ✅ Respuesta actualizada correctamente
-    </div>
-    
-    <div id="mensajeError" style="display: none; position: fixed; top: 20px; right: 20px; background: #ef4444; color: white; padding: 16px 24px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 9999;">
-        ❌ Error al actualizar la respuesta
+
+    <div id="mensajeExito" class="editor-notice alert alert--success" role="status" aria-live="polite">
+        <i class="fas fa-circle-check alert__icon" aria-hidden="true"></i>
+        <span>Respuesta actualizada correctamente</span>
     </div>
 
-    <script>
-        function abrirModal(respuestaId, titulo, textoActual) {
-            document.getElementById('modalTitle').textContent = 'Editar: ' + titulo;
-            document.getElementById('modalTextarea').value = textoActual;
-            document.getElementById('modalRespuestaId').value = respuestaId;
-            document.getElementById('modalEditar').classList.add('active');
+    <div id="mensajeError" class="editor-notice alert alert--error" role="alert">
+        <i class="fas fa-circle-exclamation alert__icon" aria-hidden="true"></i>
+        <span>Error al actualizar la respuesta</span>
+    </div>
+</div>
+
+<script>
+    let activeEditButton = null;
+
+    function abrirModal(respuestaId, titulo, textoActual, trigger) {
+        activeEditButton = trigger || document.activeElement;
+        document.getElementById('modalTitle').textContent = 'Editar: ' + titulo;
+        document.getElementById('modalTextarea').value = textoActual;
+        document.getElementById('modalRespuestaId').value = respuestaId;
+        document.getElementById('modalEditar').classList.add('active');
+        document.getElementById('modalEditar').setAttribute('aria-hidden', 'false');
+        document.getElementById('modalTextarea').focus();
+    }
+
+    function cerrarModal() {
+        document.getElementById('modalEditar').classList.remove('active');
+        document.getElementById('modalEditar').setAttribute('aria-hidden', 'true');
+        document.getElementById('formEditar').reset();
+        if (activeEditButton) {
+            activeEditButton.focus();
+        }
+        activeEditButton = null;
+    }
+
+    // Cerrar modal al hacer clic fuera de él
+    document.getElementById('modalEditar').addEventListener('click', function(e) {
+        if (e.target === this) {
+            cerrarModal();
+        }
+    });
+
+    // Cerrar modal con tecla Escape
+    document.addEventListener('keydown', function(e) {
+        const modalEditar = document.getElementById('modalEditar');
+        if (e.key === 'Escape' && modalEditar.classList.contains('active')) {
+            cerrarModal();
+        }
+    });
+
+    // Mantener el foco dentro del diálogo abierto
+    document.getElementById('modalEditar').addEventListener('keydown', function(e) {
+        if (e.key !== 'Tab') {
+            return;
         }
 
-        function cerrarModal() {
-            document.getElementById('modalEditar').classList.remove('active');
-            document.getElementById('formEditar').reset();
-        }
+        const focusable = this.querySelectorAll('button:not([disabled]), textarea:not([disabled])');
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
 
-        // Cerrar modal al hacer clic fuera de él
-        document.getElementById('modalEditar').addEventListener('click', function(e) {
-            if (e.target === this) {
-                cerrarModal();
-            }
-        });
-
-        // Cerrar modal con tecla Escape
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                cerrarModal();
-            }
-        });
-
-        // Manejar envío del formulario con AJAX
-        document.getElementById('formEditar').addEventListener('submit', function(e) {
+        if (e.shiftKey && document.activeElement === first) {
             e.preventDefault();
-            
-            const formData = new FormData(this);
-            const btnGuardar = this.querySelector('.btn-guardar');
-            btnGuardar.disabled = true;
-            btnGuardar.textContent = '⏳ Guardando...';
-            
-            fetch(this.action, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Mostrar mensaje de éxito
-                    const mensajeExito = document.getElementById('mensajeExito');
-                    mensajeExito.style.display = 'block';
-                    setTimeout(() => {
-                        mensajeExito.style.display = 'none';
-                    }, 3000);
-                    
-                    // Actualizar el texto en la página
-                    const respuestaId = document.getElementById('modalRespuestaId').value;
-                    const nuevoTexto = document.getElementById('modalTextarea').value;
-                    
-                    // Buscar y actualizar el texto en la página
-                    const respuestaElements = document.querySelectorAll('.respuesta-actual-text');
-                    respuestaElements.forEach(el => {
-                        const btnEditar = el.parentElement.querySelector('.btn-editar');
-                        if (btnEditar && btnEditar.getAttribute('onclick').includes(respuestaId)) {
-                            el.textContent = nuevoTexto;
-                            // Actualizar también el onclick del botón para mantener el texto actualizado
-                            const onclickAttr = btnEditar.getAttribute('onclick');
-                            const newOnclick = onclickAttr.replace(
-                                /,\s*'[^']*'\s*\)/, 
-                                ", '" + nuevoTexto.replace(/'/g, "\\'") + "')"
-                            );
-                            btnEditar.setAttribute('onclick', newOnclick);
-                        }
-                    });
-                    
-                    cerrarModal();
-                } else {
-                    // Mostrar mensaje de error
-                    const mensajeError = document.getElementById('mensajeError');
-                    mensajeError.textContent = '❌ ' + (data.message || 'Error al actualizar');
-                    mensajeError.style.display = 'block';
-                    setTimeout(() => {
-                        mensajeError.style.display = 'none';
-                    }, 3000);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
+            last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+        }
+    });
+
+    // Manejar envío del formulario con AJAX
+    document.getElementById('formEditar').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+        const btnGuardar = this.querySelector('.btn-guardar');
+        btnGuardar.disabled = true;
+        btnGuardar.classList.add('is-loading');
+        btnGuardar.textContent = 'Guardando...';
+
+        fetch(this.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Mostrar mensaje de éxito
+                const mensajeExito = document.getElementById('mensajeExito');
+                mensajeExito.style.display = 'flex';
+                setTimeout(() => {
+                    mensajeExito.style.display = 'none';
+                }, 3000);
+
+                // Actualizar el texto en la página
+                const respuestaId = document.getElementById('modalRespuestaId').value;
+                const nuevoTexto = document.getElementById('modalTextarea').value;
+
+                // Buscar y actualizar el texto en la página
+                const respuestaElements = document.querySelectorAll('.respuesta-actual-text');
+                respuestaElements.forEach(el => {
+                    const btnEditar = el.parentElement.querySelector('.btn-editar');
+                    if (btnEditar && btnEditar.getAttribute('onclick').includes(respuestaId)) {
+                        el.textContent = nuevoTexto;
+                        // Actualizar también el onclick del botón para mantener el texto actualizado
+                        const onclickAttr = btnEditar.getAttribute('onclick');
+                        const newOnclick = onclickAttr.replace(
+                            /,\s*'[^']*'\s*,\s*this\)/,
+                            ", '" + nuevoTexto.replace(/'/g, "\\'") + "', this)"
+                        );
+                        btnEditar.setAttribute('onclick', newOnclick);
+                    }
+                });
+
+                cerrarModal();
+            } else {
+                // Mostrar mensaje de error
                 const mensajeError = document.getElementById('mensajeError');
-                mensajeError.textContent = '❌ Error de conexión';
-                mensajeError.style.display = 'block';
+                mensajeError.textContent = data.message || 'Error al actualizar';
+                mensajeError.style.display = 'flex';
                 setTimeout(() => {
                     mensajeError.style.display = 'none';
                 }, 3000);
-            })
-            .finally(() => {
-                btnGuardar.disabled = false;
-                btnGuardar.textContent = '💾 Guardar';
-            });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            const mensajeError = document.getElementById('mensajeError');
+            mensajeError.textContent = 'Error de conexión';
+            mensajeError.style.display = 'flex';
+            setTimeout(() => {
+                mensajeError.style.display = 'none';
+            }, 3000);
+        })
+        .finally(() => {
+            btnGuardar.disabled = false;
+            btnGuardar.classList.remove('is-loading');
+            btnGuardar.innerHTML = '<i class="fas fa-floppy-disk" aria-hidden="true"></i> Guardar';
         });
-    </script>
-</div>
-</body>
-</html>
+    });
+</script>
+{% endblock %}

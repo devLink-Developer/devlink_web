@@ -9,17 +9,17 @@
   <link rel="icon" type="image/webp" href="https://ss-static-001.esmsv.com/r/content/host2/4172d4e2978b9da867fe259f4df844c8//editor/transparente.webp" />
   <link rel="stylesheet" href="{% static 'styles.css' %}" />
 </head>
-<body>
+<body class="content-page reading-page">
   <header class="site-header" data-header>
     <div class="container nav-wrapper">
       <a href="/" class="brand">
         <img src="https://ss-static-001.esmsv.com/r/content/host2/4172d4e2978b9da867fe259f4df844c8//editor/transparente.webp" alt="devLink" class="brand-logo" />
         <span class="brand-text"><span></span></span>
       </a>
-      <button class="nav-toggle" aria-label="Abrir menú" aria-expanded="false" data-nav-toggle>
+      <button class="nav-toggle" aria-label="Abrir menú" aria-expanded="false" aria-controls="terms-navigation" data-nav-toggle>
         <span></span><span></span><span></span>
       </button>
-      <nav class="nav-links" data-nav>
+      <nav class="nav-links" id="terms-navigation" data-nav>
         <a href="/#inicio">Inicio</a>
         <a href="/#servicios">Servicios</a>
         <a href="/#soluciones">Soluciones</a>
@@ -29,13 +29,14 @@
     </div>
   </header>
 
-  <main class="documentation">
-    <div class="doc-content">
+  <main class="documentation reading-layout legal-layout">
+    <div class="doc-content reading-content">
       <div class="container">
-        <div class="doc-grid">
-          <aside class="doc-sidebar">
-            <h3>Índice de contenidos</h3>
-            <nav class="doc-nav">
+        <div class="doc-grid reading-grid">
+          <aside class="reading-sidebar" aria-label="Índice de contenidos">
+            <details class="reading-index" open>
+              <summary>Índice de contenidos</summary>
+              <nav class="doc-nav" aria-label="Índice de contenidos">
               <a href="#aceptacion-terminos">Aceptación de términos</a>
               <a href="#descripcion-servicios">Descripción de servicios</a>
               <a href="#uso-whatsapp">Uso de WhatsApp Business</a>
@@ -50,11 +51,12 @@
               <a href="#ley-aplicable">Ley aplicable</a>
               <a href="#modificaciones">Modificaciones</a>
               <a href="#contacto-terminos">Contacto</a>
-            </nav>
+              </nav>
+            </details>
           </aside>
 
-          <div class="doc-main">
-            <article class="doc-article">
+          <div class="doc-main reading-main">
+            <article class="doc-article article-shell">
               <header class="doc-header">
                 <h1>Términos de Servicio</h1>
                 <p>Última actualización: 25 de octubre de 2025</p>
@@ -529,6 +531,7 @@
     const nav = document.querySelector('[data-nav]');
     const navToggle = document.querySelector('[data-nav-toggle]');
     const navLinks = [...document.querySelectorAll('[data-nav] a')];
+    const desktopNavigation = window.matchMedia('(min-width: 960px)');
     let lastScroll = 0;
 
     const threshold = 120;
@@ -562,59 +565,112 @@
       lastScroll = current <= 0 ? 0 : current;
     });
 
+    const setNavigationState = expanded => {
+      const isOpen = !desktopNavigation.matches && expanded;
+      nav.classList.toggle('is-open', isOpen);
+      navToggle.setAttribute('aria-expanded', String(isOpen));
+      nav.inert = !desktopNavigation.matches && !isOpen;
+      document.body.classList.toggle('no-scroll', isOpen);
+    };
+
+    const closeNavigation = () => {
+      setNavigationState(false);
+    };
+
+    setNavigationState(false);
+
     navToggle.addEventListener('click', () => {
       const expanded = navToggle.getAttribute('aria-expanded') === 'true';
-      navToggle.setAttribute('aria-expanded', String(!expanded));
-      nav.classList.toggle('is-open');
-      document.body.classList.toggle('no-scroll', !expanded);
+      setNavigationState(!expanded);
     });
 
     navLinks.forEach(link => {
-      link.addEventListener('click', () => {
-        nav.classList.remove('is-open');
-        navToggle.setAttribute('aria-expanded', 'false');
-        document.body.classList.remove('no-scroll');
-      });
+      link.addEventListener('click', closeNavigation);
     });
 
-    // Smooth scrolling for anchor links
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-      anchor.addEventListener('click', function (e) {
-        e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-          target.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start'
-          });
-        }
-      });
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && nav.classList.contains('is-open')) {
+        closeNavigation();
+        navToggle.focus();
+      }
     });
 
-    // Active navigation highlight
-    const sections = document.querySelectorAll('section[id]');
-    const navLinksDoc = document.querySelectorAll('.doc-nav a');
+    if (desktopNavigation.addEventListener) {
+      desktopNavigation.addEventListener('change', closeNavigation);
+    } else {
+      desktopNavigation.addListener(closeNavigation);
+    }
 
-    function setActiveNavLink() {
-      let current = '';
-      sections.forEach(section => {
-        const sectionTop = section.offsetTop;
-        const sectionHeight = section.clientHeight;
-        if (window.pageYOffset >= sectionTop - 200) {
-          current = section.getAttribute('id');
+    // Responsive index and active location
+    const readingIndex = document.querySelector('.reading-index');
+    const readingBreakpoint = window.matchMedia('(max-width: 899px)');
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const readingSections = [...document.querySelectorAll('.article-shell [id]')];
+    const readingLinks = [...document.querySelectorAll('.reading-index a[href^="#"]')];
+
+    function syncReadingIndex({ matches }) {
+      if (matches) {
+        readingIndex.removeAttribute('open');
+      } else {
+        readingIndex.setAttribute('open', '');
+      }
+    }
+
+    function focusReadingTarget(target) {
+      const focusTarget = target.querySelector('h1, h2') || target;
+      const originalTabindex = focusTarget.getAttribute('tabindex');
+      focusTarget.setAttribute('tabindex', '-1');
+      focusTarget.focus({ preventScroll: true });
+      focusTarget.addEventListener('blur', () => {
+        if (originalTabindex === null) {
+          focusTarget.removeAttribute('tabindex');
+        } else {
+          focusTarget.setAttribute('tabindex', originalTabindex);
+        }
+      }, { once: true });
+    }
+
+    function setActiveReadingLink() {
+      let current = readingSections[0] ? readingSections[0].id : '';
+      readingSections.forEach(section => {
+        if (section.getBoundingClientRect().top <= header.offsetHeight + 40) {
+          current = section.id;
         }
       });
 
-      navLinksDoc.forEach(link => {
+      readingLinks.forEach(link => {
         link.classList.remove('active');
+        link.removeAttribute('aria-current');
         if (link.getAttribute('href') === `#${current}`) {
           link.classList.add('active');
+          link.setAttribute('aria-current', 'location');
         }
       });
     }
 
-    window.addEventListener('scroll', setActiveNavLink);
-    window.addEventListener('load', setActiveNavLink);
+    syncReadingIndex(readingBreakpoint);
+    readingBreakpoint.addEventListener('change', syncReadingIndex);
+    readingLinks.forEach(link => {
+      link.addEventListener('click', event => {
+        const target = document.querySelector(link.getAttribute('href'));
+        if (!target) return;
+
+        event.preventDefault();
+        if (readingBreakpoint.matches) {
+          readingIndex.removeAttribute('open');
+        }
+
+        requestAnimationFrame(() => {
+          target.scrollIntoView({
+            behavior: reducedMotion.matches ? 'auto' : 'smooth',
+            block: 'start'
+          });
+          focusReadingTarget(target);
+        });
+      });
+    });
+    window.addEventListener('scroll', setActiveReadingLink, { passive: true });
+    window.addEventListener('load', setActiveReadingLink);
 
     document.querySelector('[data-year]').textContent = new Date().getFullYear();
   </script>

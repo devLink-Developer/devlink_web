@@ -4,211 +4,163 @@
 {% block title %}Reporte WhatsApp - {{ user.company_name }}{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50">
-    <!-- Navigation -->
-    <nav class="bg-white shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                        <i class="fas fa-code text-blue-600 text-2xl"></i>
-                    </div>
-                    <div class="ml-4">
-                        <h1 class="text-xl font-semibold text-gray-900">Reporte WhatsApp</h1>
-                    </div>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <a href="{% url 'dashboard' %}" class="text-gray-600 hover:text-gray-900">
-                        <i class="fas fa-arrow-left"></i> Volver
-                    </a>
-                    <span class="text-sm text-gray-700">{{ user.company_name|default:user.username }}</span>
-                    <a href="{% url 'logout' %}" class="text-gray-500 hover:text-gray-700">
-                        <i class="fas fa-sign-out-alt"></i> Salir
-                    </a>
-                </div>
+<div class="app-shell portal-page">
+    <header class="app-header">
+        <div class="app-header__brand">
+            <span class="app-brand-mark" aria-hidden="true"><i class="fas fa-code"></i></span>
+            <span>Reporte WhatsApp</span>
+        </div>
+        <div class="app-header__actions">
+            <a href="{% url 'dashboard' %}" class="button button--quiet button--small">
+                <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                Volver
+            </a>
+            <span class="app-user-context">{{ user.company_name|default:user.username }}</span>
+            <a href="{% url 'logout' %}" class="button button--quiet button--small">
+                <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
+                Salir
+            </a>
+        </div>
+    </header>
+
+    <main class="dashboard-shell">
+        <div class="page-heading page-heading--report">
+            <div>
+                <h1>Estadísticas de WhatsApp</h1>
+                <p>Análisis de las interacciones con tu chatbot</p>
+            </div>
+            <div class="report-refresh" aria-label="Estado de actualización">
+                <p>
+                    <i class="fas fa-clock" aria-hidden="true"></i>
+                    Última actualización:
+                    <strong id="ultima-actualizacion">{{ fecha_reporte }}</strong>
+                </p>
+                <p>
+                    <i class="fas fa-sync-alt" aria-hidden="true"></i>
+                    Actualización automática cada 3 minutos
+                </p>
             </div>
         </div>
-    </nav>
 
-    <!-- Main content -->
-    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div class="px-4 sm:px-0">
-            <!-- Header -->
-            <div class="mb-6 flex justify-between items-center">
+        <section class="metric-grid metric-grid--four" aria-label="Estadísticas generales">
+            <article class="metric-card">
+                <span class="metric-card__icon" aria-hidden="true"><i class="fas fa-comments"></i></span>
                 <div>
-                    <h2 class="text-2xl font-bold text-gray-900">📊 Estadísticas de WhatsApp</h2>
-                    <p class="text-gray-600">Análisis de las interacciones con tu chatbot</p>
+                    <p class="metric-card__label">Total Consultas</p>
+                    <p class="metric-card__number">{{ total_consultas }}</p>
                 </div>
-                <div class="text-right">
-                    <p class="text-sm text-gray-600">
-                        <i class="fas fa-clock"></i> Última actualización: 
-                        <span id="ultima-actualizacion" class="font-semibold">{{ fecha_reporte }}</span>
-                    </p>
-                    <p class="text-xs text-gray-500 mt-1">
-                        <i class="fas fa-sync-alt"></i> Actualización automática cada 3 minutos
-                    </p>
+            </article>
+            <article class="metric-card">
+                <span class="metric-card__icon" aria-hidden="true"><i class="fas fa-question-circle"></i></span>
+                <div>
+                    <p class="metric-card__label">Preguntas Diferentes</p>
+                    <p class="metric-card__number">{{ total_preguntas }}</p>
+                </div>
+            </article>
+            <article class="metric-card">
+                <span class="metric-card__icon" aria-hidden="true"><i class="fas fa-users"></i></span>
+                <div>
+                    <p class="metric-card__label">Usuarios Únicos</p>
+                    <p class="metric-card__number">{{ total_usuarios_unicos }}</p>
+                </div>
+            </article>
+            <article class="metric-card">
+                <span class="metric-card__icon" aria-hidden="true"><i class="fas fa-chart-line"></i></span>
+                <div>
+                    <p class="metric-card__label">Promedio/Usuario</p>
+                    <p class="metric-card__number">{{ promedio_usuario }}</p>
+                </div>
+            </article>
+        </section>
+
+        <section class="panel dashboard-panel" aria-labelledby="top-questions-heading">
+            <div class="panel__header">
+                <h2 class="panel__title" id="top-questions-heading">Top 10 Preguntas Más Consultadas</h2>
+            </div>
+            <div class="table-scroll report-table-wrap">
+                <table class="report-table data-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">Pregunta</th>
+                            <th scope="col" class="table-cell--center">Consultas</th>
+                            <th scope="col" class="table-cell--center">Usuarios</th>
+                            <th scope="col">Última Consulta</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in top_10 %}
+                        <tr>
+                            <td class="table-rank">{{ forloop.counter }}</td>
+                            <td>{{ item.pregunta }}</td>
+                            <td class="table-cell--center"><span class="count-badge">{{ item.total_consultas }}</span></td>
+                            <td class="table-cell--center">{{ item.usuarios_unicos }}</td>
+                            <td class="table-cell--nowrap table-cell--muted">{{ item.ultima_consulta }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="panel dashboard-panel" aria-labelledby="all-questions-heading">
+            <div class="panel__header report-panel-heading">
+                <div>
+                    <h2 class="panel__title" id="all-questions-heading">Detalle de Todas las Preguntas</h2>
+                    <p>Mostrando página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</p>
                 </div>
             </div>
-
-            <!-- Estadísticas Generales -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div class="bg-white rounded-lg shadow p-6">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0 bg-blue-100 rounded-full p-3">
-                            <i class="fas fa-comments text-blue-600 text-2xl"></i>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-600">Total Consultas</p>
-                            <p class="text-2xl font-bold text-gray-900">{{ total_consultas }}</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-lg shadow p-6">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0 bg-green-100 rounded-full p-3">
-                            <i class="fas fa-question-circle text-green-600 text-2xl"></i>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-600">Preguntas Diferentes</p>
-                            <p class="text-2xl font-bold text-gray-900">{{ total_preguntas }}</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-lg shadow p-6">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0 bg-purple-100 rounded-full p-3">
-                            <i class="fas fa-users text-purple-600 text-2xl"></i>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-600">Usuarios Únicos</p>
-                            <p class="text-2xl font-bold text-gray-900">{{ total_usuarios_unicos }}</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-lg shadow p-6">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0 bg-orange-100 rounded-full p-3">
-                            <i class="fas fa-chart-line text-orange-600 text-2xl"></i>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-600">Promedio/Usuario</p>
-                            <p class="text-2xl font-bold text-gray-900">{{ promedio_usuario }}</p>
-                        </div>
-                    </div>
-                </div>
+            <div class="table-scroll report-table-wrap">
+                <table class="report-table data-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Pregunta</th>
+                            <th scope="col" class="table-cell--center">Consultas</th>
+                            <th scope="col" class="table-cell--center">Usuarios</th>
+                            <th scope="col">Última Consulta</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in page_obj %}
+                        <tr>
+                            <td>{{ item.pregunta }}</td>
+                            <td class="table-cell--center"><span class="count-badge count-badge--success">{{ item.total_consultas }}</span></td>
+                            <td class="table-cell--center">{{ item.usuarios_unicos }}</td>
+                            <td class="table-cell--nowrap table-cell--muted">{{ item.ultima_consulta }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
 
-            <!-- Top 10 Preguntas -->
-            <div class="bg-white rounded-lg shadow mb-8">
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <h3 class="text-lg font-semibold text-gray-900">🏆 Top 10 Preguntas Más Consultadas</h3>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pregunta</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Consultas</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Usuarios</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Última Consulta</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            {% for item in top_10 %}
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-blue-600">{{ forloop.counter }}</td>
-                                <td class="px-6 py-4 text-sm text-gray-900">{{ item.pregunta }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                        {{ item.total_consultas }}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">{{ item.usuarios_unicos }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ item.ultima_consulta }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            {% if page_obj.paginator.num_pages > 1 %}
+            <nav class="panel__footer pagination" aria-label="Paginación del reporte">
+                <p>
+                    Mostrando <strong>{{ page_obj.start_index }}</strong> a
+                    <strong>{{ page_obj.end_index }}</strong> de
+                    <strong>{{ page_obj.paginator.count }}</strong> resultados
+                </p>
+                <div class="pagination__actions">
+                    {% if page_obj.has_previous %}
+                    <a href="?page=1" class="button button--secondary button--small">Primera</a>
+                    <a href="?page={{ page_obj.previous_page_number }}" class="button button--secondary button--small">Anterior</a>
+                    {% endif %}
 
-            <!-- Todas las Preguntas -->
-            <div class="bg-white rounded-lg shadow">
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <h3 class="text-lg font-semibold text-gray-900">📋 Detalle de Todas las Preguntas</h3>
-                    <p class="text-sm text-gray-600 mt-1">Mostrando página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</p>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pregunta</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Consultas</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Usuarios</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Última Consulta</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            {% for item in page_obj %}
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4 text-sm text-gray-900">{{ item.pregunta }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                        {{ item.total_consultas }}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">{{ item.usuarios_unicos }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ item.ultima_consulta }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                
-                <!-- Paginación -->
-                {% if page_obj.paginator.num_pages > 1 %}
-                <div class="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-                    <div class="text-sm text-gray-700">
-                        Mostrando <span class="font-medium">{{ page_obj.start_index }}</span> a 
-                        <span class="font-medium">{{ page_obj.end_index }}</span> de 
-                        <span class="font-medium">{{ page_obj.paginator.count }}</span> resultados
-                    </div>
-                    <div class="flex gap-2">
-                        {% if page_obj.has_previous %}
-                        <a href="?page=1" class="px-3 py-2 bg-white border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50">
-                            Primera
-                        </a>
-                        <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-2 bg-white border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50">
-                            Anterior
-                        </a>
-                        {% endif %}
-                        
-                        <span class="px-3 py-2 bg-blue-600 text-white rounded-md text-sm">
-                            Página {{ page_obj.number }}
-                        </span>
-                        
-                        {% if page_obj.has_next %}
-                        <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-2 bg-white border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50">
-                            Siguiente
-                        </a>
-                        <a href="?page={{ page_obj.paginator.num_pages }}" class="px-3 py-2 bg-white border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50">
-                            Última
-                        </a>
-                        {% endif %}
-                    </div>
-                </div>
-                {% endif %}
-            </div>
+                    <span class="pagination__current" aria-current="page">Página {{ page_obj.number }}</span>
 
-            <!-- Footer -->
-            <div class="mt-6 text-center text-sm text-gray-500">
-                <i class="fas fa-info-circle"></i> Los datos se actualizan automáticamente mientras la página permanezca abierta
-            </div>
-        </div>
+                    {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}" class="button button--secondary button--small">Siguiente</a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}" class="button button--secondary button--small">Última</a>
+                    {% endif %}
+                </div>
+            </nav>
+            {% endif %}
+        </section>
+
+        <p class="dashboard-note">
+            <i class="fas fa-info-circle" aria-hidden="true"></i>
+            Los datos se actualizan automáticamente mientras la página permanezca abierta
+        </p>
     </main>
 </div>
 
@@ -217,7 +169,7 @@
     setTimeout(function() {
         location.reload();
     }, 180000);
-    
+
     // Opcional: Mostrar un indicador de recarga
     let segundosRestantes = 180;
     setInterval(function() {

@@ -112,6 +112,9 @@ staticfiles/
 # VS Code
 .vscode/
 
+# Local isolated development worktrees
+.worktrees/
+
 # Docker
 .dockerignore
 emails_enviados.txt

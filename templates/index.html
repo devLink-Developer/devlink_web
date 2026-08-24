@@ -7,19 +7,28 @@
   <title>devLink | Migración de datos y automatización a medida</title>
   <meta name="description" content="Equipo experto en migración de datos, acompañamiento de implementaciones, automatización con RPA y Arduino, desarrollo web y chatbots. Podemos alojar tus soluciones en nuestra nube o en tu infraestructura." />
   <link rel="icon" type="image/webp" href="https://ss-static-001.esmsv.com/r/content/host2/4172d4e2978b9da867fe259f4df844c8//editor/transparente.webp" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
   <link rel="stylesheet" href="{% static 'styles.css' %}" />
 </head>
-<body>
+<body class="marketing-page">
+  <!--
+    THESIS: devLink turns complex technology into a clear path from operational friction to a confident next step, without the dark-neon technology cliché.
+    OWN-WORLD: White and cool-gray working surfaces, navy structure, electric-blue actions, restrained cyan signals, crisp one-pixel rules, and softly elevated 16px panels.
+    STORY: Visitors understand the breadth of the offer, see how services and Suite Lite connect, trust the implementation method, and request a diagnosis.
+    FIRST VIEWPORT: A wide editorial proposition and primary action occupy the left two-thirds; an existing-content capability map anchors the right and keeps the contact path visible.
+    FORM: Estándar SaaS tecnológico; seed key ee6c512a.
+    FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+  -->
   <header class="site-header" data-header>
     <div class="container nav-wrapper">
       <a href="#inicio" class="brand">
         <img src="https://ss-static-001.esmsv.com/r/content/host2/4172d4e2978b9da867fe259f4df844c8//editor/transparente.webp" alt="devLink" class="brand-logo" />
         <span class="brand-text"><span></span></span>
       </a>
-      <button class="nav-toggle" aria-label="Abrir menú" aria-expanded="false" data-nav-toggle>
+      <button class="nav-toggle" aria-label="Abrir menú" aria-expanded="false" aria-controls="marketing-navigation" data-nav-toggle>
         <span></span><span></span><span></span>
       </button>
-      <nav class="nav-links" data-nav>
+      <nav class="nav-links" id="marketing-navigation" data-nav>
         <a href="#inicio">Inicio</a>
         <a href="#servicios">Servicios</a>
         <a href="#suite-lite">Suite Lite</a>
@@ -32,7 +41,7 @@
   </header>
 
   <main id="inicio">
-    <section class="hero">
+    <section class="hero section-shell">
       <div class="container hero-grid">
         <div class="hero-copy">
           <p class="eyebrow">Migraciones, automatización y desarrollo a tu ritmo</p>
@@ -50,7 +59,7 @@
             <li>Aplicaciones web y chatbots listos para crecer contigo</li>
           </ul>
         </div>
-        <div class="hero-media">
+        <div class="hero-media capability-map">
           <div class="hero-card">
             <p class="hero-card-title">Lo que logramos juntos</p>
             <ul>
@@ -67,7 +76,7 @@
       </div>
     </section>
 
-    <section class="proof">
+    <section class="proof section-shell">
       <div class="container">
         <div class="section-header">
           <h2>Resultados claros para tus implementaciones</h2>
@@ -90,7 +99,7 @@
       </div>
     </section>
 
-    <section id="servicios" class="services">
+    <section id="servicios" class="services section-shell">
       <div class="container">
         <div class="section-header">
           <h2>Servicios que bajan la complejidad tecnológica</h2>
@@ -98,7 +107,7 @@
         </div>
         <div class="service-grid">
           <article class="service-card">
-            <span class="service-icon">📦</span>
+            <span class="service-icon" aria-hidden="true"><i class="fa-solid fa-database"></i></span>
             <h3>Migración y datos confiables</h3>
             <p>Planificamos y ejecutamos migraciones desde D365, SAP, TMW-WMS y otras plataformas sin frenar la operación.</p>
             <ul>
@@ -108,7 +117,7 @@
             </ul>
           </article>
           <article class="service-card">
-            <span class="service-icon">🤝</span>
+            <span class="service-icon" aria-hidden="true"><i class="fa-solid fa-handshake"></i></span>
             <h3>Acompañamiento de implementaciones</h3>
             <p>Participamos en tus proyectos clave como un socio más: PMO, workshops y soporte funcional para asegurar adopción.</p>
             <ul>
@@ -118,7 +127,7 @@
             </ul>
           </article>
           <article class="service-card">
-            <span class="service-icon">⚙️</span>
+            <span class="service-icon" aria-hidden="true"><i class="fa-solid fa-gears"></i></span>
             <h3>Automatización a medida</h3>
             <p>Construimos flujos con RPA y soluciones Arduino que eliminan tareas repetitivas y conectan tus datos.</p>
             <ul>
@@ -128,7 +137,7 @@
             </ul>
           </article>
           <article class="service-card">
-            <span class="service-icon">💬</span>
+            <span class="service-icon" aria-hidden="true"><i class="fa-solid fa-comments"></i></span>
             <h3>Experiencias digitales</h3>
             <p>Desarrollamos webs corporativas, aplicaciones y chatbots integrados con WhatsApp y modelos de IA.</p>
             <ul>
@@ -141,7 +150,7 @@
       </div>
     </section>
 
-    <section id="suite-lite" class="suite-lite" aria-labelledby="suite-lite-title">
+    <section id="suite-lite" class="suite-lite section-shell" aria-labelledby="suite-lite-title">
       <div class="container">
         <div class="suite-intro">
           <div>
@@ -154,54 +163,48 @@
           </div>
         </div>
 
-        <ol class="suite-products">
+        <ul class="suite-products">
           <li class="suite-product">
             <div class="suite-product-heading">
-              <span class="suite-product-number" aria-hidden="true">01</span>
               <h3>Lite-POS</h3>
             </div>
             <p>Un punto de venta sólido para agilizar la atención, controlar cada operación y trabajar integrado con SAP.</p>
           </li>
           <li class="suite-product">
             <div class="suite-product-heading">
-              <span class="suite-product-number" aria-hidden="true">02</span>
               <h3>Lite-Core</h3>
             </div>
             <p>El centro de administración del POS para mantener productos, precios, usuarios y datos bajo control.</p>
           </li>
           <li class="suite-product">
             <div class="suite-product-heading">
-              <span class="suite-product-number" aria-hidden="true">03</span>
               <h3>Lite-Logistic</h3>
             </div>
             <p>Gestión de transporte y depósitos para organizar inventario, movimientos, entregas y recorridos.</p>
           </li>
           <li class="suite-product">
             <div class="suite-product-heading">
-              <span class="suite-product-number" aria-hidden="true">04</span>
               <h3>Lite-eCommerce</h3>
             </div>
             <p>Una tienda online conectada con tus productos, precios, pedidos y disponibilidad para vender sin duplicar tareas.</p>
           </li>
           <li class="suite-product">
             <div class="suite-product-heading">
-              <span class="suite-product-number" aria-hidden="true">05</span>
               <h3>Lite-Flow</h3>
             </div>
             <p>El puente que permite intercambiar información entre SAP, Suite Lite y los demás sistemas de tu empresa.</p>
           </li>
           <li class="suite-product">
             <div class="suite-product-heading">
-              <span class="suite-product-number" aria-hidden="true">06</span>
               <h3>Lite-CRM</h3>
             </div>
             <p>Seguimiento simple de clientes, contactos y oportunidades para ordenar la actividad comercial.</p>
           </li>
-        </ol>
+        </ul>
       </div>
     </section>
 
-    <section id="soluciones" class="solutions">
+    <section id="soluciones" class="solutions section-shell">
       <div class="container">
         <div class="section-header">
           <h2>Cómo conectamos tus procesos de punta a punta</h2>
@@ -239,7 +242,7 @@
       </div>
     </section>
 
-    <section id="metodologia" class="process">
+    <section id="metodologia" class="process section-shell">
       <div class="container">
         <div class="section-header">
           <h2>Metodología centrada en tu equipo</h2>
@@ -276,7 +279,7 @@
       </div>
     </section>
 
-    <section id="contacto" class="contact">
+    <section id="contacto" class="contact section-shell">
       <div class="container contact-grid">
         <div class="contact-copy">
           <p class="eyebrow">Trabajemos juntos</p>
@@ -369,6 +372,7 @@
     const nav = document.querySelector('[data-nav]');
     const navToggle = document.querySelector('[data-nav-toggle]');
     const navLinks = [...document.querySelectorAll('[data-nav] a')];
+    const desktopNavigation = window.matchMedia('(min-width: 960px)');
     let lastScroll = 0;
 
     const threshold = 120;
@@ -402,20 +406,43 @@
       lastScroll = current <= 0 ? 0 : current;
     });
 
+    const setNavigationState = expanded => {
+      const isOpen = !desktopNavigation.matches && expanded;
+      nav.classList.toggle('is-open', isOpen);
+      navToggle.setAttribute('aria-expanded', String(isOpen));
+      nav.inert = !desktopNavigation.matches && !isOpen;
+      document.body.classList.toggle('no-scroll', isOpen);
+    };
+
+    const closeNavigation = () => {
+      setNavigationState(false);
+    };
+
+    setNavigationState(false);
+
     navToggle.addEventListener('click', () => {
       const expanded = navToggle.getAttribute('aria-expanded') === 'true';
-      navToggle.setAttribute('aria-expanded', String(!expanded));
-      nav.classList.toggle('is-open');
-      document.body.classList.toggle('no-scroll', !expanded);
+      setNavigationState(!expanded);
     });
 
     navLinks.forEach(link => {
       link.addEventListener('click', () => {
-        nav.classList.remove('is-open');
-        navToggle.setAttribute('aria-expanded', 'false');
-        document.body.classList.remove('no-scroll');
+        closeNavigation();
       });
     });
+
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && nav.classList.contains('is-open')) {
+        closeNavigation();
+        navToggle.focus();
+      }
+    });
+
+    if (desktopNavigation.addEventListener) {
+      desktopNavigation.addEventListener('change', closeNavigation);
+    } else {
+      desktopNavigation.addListener(closeNavigation);
+    }
 
     document.querySelector('[data-year]').textContent = new Date().getFullYear();
   </script>

@@ -2,6 +2,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 from django.conf import settings
+from django.template.loader import render_to_string
 from django.test import SimpleTestCase, override_settings
 
 
@@ -168,3 +169,106 @@ class FrontendContractTests(SimpleTestCase):
             ".alert",
         ):
             self.assertIn(selector, css)
+
+    def test_public_reading_surfaces_use_shared_styles(self):
+        for route in (
+            "/politicas-privacidad/",
+            "/terminos-servicio/",
+            "/aviso-iluminacion/",
+        ):
+            with self.subTest(route=route):
+                response = self.client.get(route)
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, "styles.css")
+
+    def test_login_keeps_authentication_fields(self):
+        response = self.client.get("/portal/")
+
+        self.assertContains(response, 'name="username"')
+        self.assertContains(response, 'name="password"')
+        self.assertContains(response, "csrfmiddlewaretoken")
+
+    def test_login_exposes_accessible_auth_layout(self):
+        source = self.client.get("/portal/").content.decode("utf-8")
+
+        self.assertIn('<main class="auth-layout">', source)
+        self.assertIn(
+            '<section class="auth-intro" aria-labelledby="portal-title">',
+            source,
+        )
+        self.assertIn('<h1 id="portal-title">Portal Cliente</h1>', source)
+        self.assertIn('<section class="auth-panel"', source)
+
+    def test_documentation_exposes_accessible_reading_layout(self):
+        source = render_to_string("documentacion.html")
+
+        self.assertIn('<main class="reading-layout docs-layout">', source)
+        self.assertIn(
+            '<aside class="reading-sidebar docs-sidebar"',
+            source,
+        )
+        self.assertIn('<details class="reading-index" open>', source)
+        self.assertIn('aria-label="Temas de documentación"', source)
+        self.assertEqual(source.count('class="doc-article article-shell"'), 2)
+
+    def test_legal_surfaces_expose_accessible_reading_layout(self):
+        for route in (
+            "/politicas-privacidad/",
+            "/terminos-servicio/",
+            "/aviso-iluminacion/",
+        ):
+            with self.subTest(route=route):
+                source = self.client.get(route).content.decode("utf-8")
+                self.assertIn(
+                    '<main class="documentation reading-layout legal-layout">',
+                    source,
+                )
+                self.assertIn('<aside class="reading-sidebar"', source)
+                self.assertIn('<details class="reading-index" open>', source)
+                self.assertIn('aria-label="Índice de contenidos"', source)
+                self.assertIn('class="doc-article article-shell"', source)
+
+    def test_auth_and_reading_layouts_have_responsive_shared_styles(self):
+        css = (
+            Path(settings.BASE_DIR) / "static" / "styles.css"
+        ).read_text(encoding="utf-8")
+
+        for selector in (
+            ".auth-layout",
+            ".auth-panel",
+            ".reading-layout",
+            ".reading-sidebar",
+            ".article-shell",
+            ".legal-layout",
+        ):
+            self.assertIn(selector, css)
+        self.assertRegex(
+            css,
+            r"(?s)@media \(max-width: 899px\).*?\.reading-index",
+        )
+
+    def test_reading_indices_collapse_on_mobile_and_expose_active_location(self):
+        sources = [
+            render_to_string("documentacion.html"),
+            self.client.get("/politicas-privacidad/").content.decode("utf-8"),
+            self.client.get("/terminos-servicio/").content.decode("utf-8"),
+            self.client.get("/aviso-iluminacion/").content.decode("utf-8"),
+        ]
+
+        for source in sources:
+            title = source.split("<title>", 1)[1].split("</title>", 1)[0]
+            with self.subTest(title=title):
+                self.assertIn("window.matchMedia('(max-width: 899px)')", source)
+                self.assertIn("readingIndex.removeAttribute('open')", source)
+                self.assertIn("link.setAttribute('aria-current', 'location')", source)
+                self.assertIn("link.removeAttribute('aria-current')", source)
+
+    def test_content_page_mobile_toggle_keeps_three_visible_strokes(self):
+        css = (
+            Path(settings.BASE_DIR) / "static" / "styles.css"
+        ).read_text(encoding="utf-8")
+        toggle_rule = css.split(".content-page .nav-toggle {", 1)[1].split("}", 1)[0]
+        stroke_rule = css.split(".content-page .nav-toggle span {", 1)[1].split("}", 1)[0]
+
+        self.assertIn("flex-direction: column;", toggle_rule)
+        self.assertIn("flex: 0 0 auto;", stroke_rule)

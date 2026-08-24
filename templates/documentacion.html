@@ -9,17 +9,17 @@
   <link rel="icon" type="image/webp" href="https://ss-static-001.esmsv.com/r/content/host2/4172d4e2978b9da867fe259f4df844c8//editor/transparente.webp" />
   <link rel="stylesheet" href="{% static 'styles.css' %}" />
 </head>
-<body>
+<body class="content-page reading-page">
   <header class="site-header" data-header>
     <div class="container nav-wrapper">
       <a href="{% url 'home' %}" class="brand">
         <img src="https://ss-static-001.esmsv.com/r/content/host2/4172d4e2978b9da867fe259f4df844c8//editor/transparente.webp" alt="devLink" class="brand-logo" />
         <span class="brand-text"><span></span></span>
       </a>
-      <button class="nav-toggle" aria-label="Abrir menú" aria-expanded="false" data-nav-toggle>
+      <button class="nav-toggle" aria-label="Abrir menú" aria-expanded="false" aria-controls="docs-navigation" data-nav-toggle>
         <span></span><span></span><span></span>
       </button>
-      <nav class="nav-links" data-nav>
+      <nav class="nav-links" id="docs-navigation" data-nav>
         <a href="{% url 'home' %}#inicio">Inicio</a>
         <a href="{% url 'home' %}#servicios">Servicios</a>
         <a href="{% url 'home' %}#soluciones">Soluciones</a>
@@ -31,12 +31,12 @@
     </div>
   </header>
 
-  <main>
-    <section class="hero">
+  <main class="reading-layout docs-layout">
+    <section class="reading-hero" aria-labelledby="documentation-title">
       <div class="container hero-grid">
         <div class="hero-copy">
-          <p class="eyebrow">Centro de ayuda</p>
-          <h1>Documentación para clientes</h1>
+          <h1 id="documentation-title">Documentación para clientes</h1>
+          <p class="reading-context">Centro de ayuda</p>
           <p class="hero-text">
             Encuentra guías detalladas y recursos para sacar el máximo provecho de tus soluciones devLink.
           </p>
@@ -44,19 +44,21 @@
       </div>
     </section>
 
-    <section class="doc-content">
+    <section class="doc-content reading-content">
       <div class="container">
-        <div class="doc-grid">
-          <aside class="doc-sidebar">
-            <h3>Temas de documentación</h3>
-            <nav class="doc-nav">
-              <a href="#configuracion-dominio" class="active">Configuración de dominio</a>
-              <a href="#correo-gmail">Configurar correo en Gmail</a>
-            </nav>
+        <div class="doc-grid reading-grid">
+          <aside class="reading-sidebar docs-sidebar" aria-label="Temas de documentación">
+            <details class="reading-index" open>
+              <summary>Temas de documentación</summary>
+              <nav class="doc-nav" aria-label="Temas de documentación">
+                <a href="#configuracion-dominio" class="active" aria-current="location">Configuración de dominio</a>
+                <a href="#correo-gmail">Configurar correo en Gmail</a>
+              </nav>
+            </details>
           </aside>
           
-          <main class="doc-main">
-            <article id="configuracion-dominio" class="doc-article">
+          <div class="doc-main reading-main">
+            <article id="configuracion-dominio" class="doc-article article-shell">
               <header class="doc-header">
                 <h2>Configuración de dominio</h2>
                 <p>Aprende a configurar correctamente tu dominio para que funcione con nuestros servicios de hosting.</p>
@@ -80,7 +82,7 @@
               </div>
             </article>
             
-            <article id="correo-gmail" class="doc-article">
+            <article id="correo-gmail" class="doc-article article-shell">
               <header class="doc-header">
                 <h2>Configurar correo en Gmail</h2>
                 <p>Aprende a configurar tu correo corporativo para usarlo desde Gmail con POP3 y SMTP.</p>
@@ -141,7 +143,7 @@
                 </div>
               </div>
             </article>
-          </main>
+          </div>
         </div>
       </div>
     </section>
@@ -226,6 +228,49 @@
         navToggle.setAttribute('aria-expanded', 'false');
       });
     });
+
+    const readingIndex = document.querySelector('.reading-index');
+    const readingBreakpoint = window.matchMedia('(max-width: 899px)');
+    const readingSections = [...document.querySelectorAll('.article-shell[id], .article-shell [id]')];
+    const readingLinks = [...document.querySelectorAll('.reading-index a[href^="#"]')];
+
+    function syncReadingIndex({ matches }) {
+      if (matches) {
+        readingIndex.removeAttribute('open');
+      } else {
+        readingIndex.setAttribute('open', '');
+      }
+    }
+
+    function setActiveReadingLink() {
+      let current = readingSections[0] ? readingSections[0].id : '';
+      readingSections.forEach(section => {
+        if (section.getBoundingClientRect().top <= header.offsetHeight + 40) {
+          current = section.id;
+        }
+      });
+
+      readingLinks.forEach(link => {
+        link.classList.remove('active');
+        link.removeAttribute('aria-current');
+        if (link.getAttribute('href') === `#${current}`) {
+          link.classList.add('active');
+          link.setAttribute('aria-current', 'location');
+        }
+      });
+    }
+
+    syncReadingIndex(readingBreakpoint);
+    readingBreakpoint.addEventListener('change', syncReadingIndex);
+    readingLinks.forEach(link => {
+      link.addEventListener('click', () => {
+        if (readingBreakpoint.matches) {
+          readingIndex.removeAttribute('open');
+        }
+      });
+    });
+    window.addEventListener('scroll', setActiveReadingLink, { passive: true });
+    window.addEventListener('load', setActiveReadingLink);
 
     document.querySelector('[data-year]').textContent = new Date().getFullYear();
   </script>

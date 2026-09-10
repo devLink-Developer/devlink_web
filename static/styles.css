@@ -2433,7 +2433,9 @@ textarea::placeholder {
 }
 
 .marketing-page .service-card:nth-child(1),
-.marketing-page .service-card:nth-child(4) {
+.marketing-page .service-card:nth-child(4),
+.marketing-page .service-card:nth-child(5),
+.marketing-page .service-card:nth-child(8) {
   grid-column: span 7;
   background: var(--surface-canvas);
 }
@@ -2979,7 +2981,9 @@ textarea::placeholder {
 
   .marketing-page .service-card,
   .marketing-page .service-card:nth-child(1),
-  .marketing-page .service-card:nth-child(4) {
+  .marketing-page .service-card:nth-child(4),
+  .marketing-page .service-card:nth-child(5),
+  .marketing-page .service-card:nth-child(8) {
     grid-column: span 6;
   }
 
@@ -3129,7 +3133,9 @@ textarea::placeholder {
 
   .marketing-page .service-card,
   .marketing-page .service-card:nth-child(1),
-  .marketing-page .service-card:nth-child(4) {
+  .marketing-page .service-card:nth-child(4),
+  .marketing-page .service-card:nth-child(5),
+  .marketing-page .service-card:nth-child(8) {
     grid-column: 1 / -1;
     min-height: auto;
   }

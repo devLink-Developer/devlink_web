@@ -533,10 +533,33 @@ class FrontendContractTests(SimpleTestCase):
 
         for emoji in ("📦", "🤝", "⚙️", "💬"):
             self.assertNotIn(emoji, source)
-        self.assertEqual(source.count('class="service-icon" aria-hidden="true"'), 4)
-        for icon in ("fa-database", "fa-handshake", "fa-gears", "fa-comments"):
+        self.assertEqual(source.count('class="service-icon" aria-hidden="true"'), 8)
+        for icon in (
+            "fa-database",
+            "fa-handshake",
+            "fa-gears",
+            "fa-comments",
+            "fa-globe",
+            "fa-cart-shopping",
+            "fa-android",
+            "fa-laptop-code",
+        ):
             self.assertIn(icon, source)
         self.assertIn("font-awesome/6.0.0/css/all.min.css", source)
+
+    def test_service_section_exposes_each_requested_digital_offering(self):
+        source = self.client.get("/").content.decode("utf-8")
+        services = source.split('<section id="servicios"', 1)[1].split(
+            '<section id="suite-lite"', 1
+        )[0]
+
+        for heading in (
+            "Desarrollo de páginas web",
+            "E-commerce para PyMEs",
+            "Desarrollo de aplicaciones Android",
+            "Aplicaciones web a medida",
+        ):
+            self.assertIn(f"<h3>{heading}</h3>", services)
 
     def test_marketing_hero_uses_a_solid_non_luminous_surface(self):
         css = (

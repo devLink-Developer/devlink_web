@@ -1254,6 +1254,7 @@ textarea::placeholder {
   height: 38px;
   object-fit: cover;
   object-position: center top;
+  transform: translateY(6px);
 }
 
 .trusted-company--distromaxi img {
@@ -1275,6 +1276,7 @@ textarea::placeholder {
   letter-spacing: -0.02em;
   opacity: 0.68;
   white-space: nowrap;
+  transform: translate(-2px, 1px);
   transition: color 0.25s ease, opacity 0.25s ease;
 }
 

@@ -111,12 +111,23 @@ class FrontendContractTests(SimpleTestCase):
         css = (root / "static" / "styles.css").read_text(
             encoding="utf-8-sig"
         )
+        javascript = (root / "static" / "i18n.js").read_text(
+            encoding="utf-8"
+        )
         fonts = root / "static" / "fonts"
 
         def fulfill_local_assets(route):
             path = urlparse(route.request.url).path
-            if path == "/static/styles.css":
+            if path == "/":
+                route.fulfill(status=200, content_type="text/html", body=html)
+            elif path == "/static/styles.css":
                 route.fulfill(status=200, content_type="text/css", body=css)
+            elif path == "/static/i18n.js":
+                route.fulfill(
+                    status=200,
+                    content_type="application/javascript",
+                    body=javascript,
+                )
             elif path.startswith("/static/fonts/"):
                 route.fulfill(
                     status=200,
@@ -407,8 +418,131 @@ class FrontendContractTests(SimpleTestCase):
             "contacto",
         ):
             self.assertContains(response, f'id="{section_id}"')
-        for field in ("nombre", "email", "empresa", "proyecto", "newsletter"):
+        for field in (
+            "nombre",
+            "email",
+            "empresa",
+            "proyecto",
+            "newsletter",
+            "language",
+        ):
             self.assertContains(response, f'name="{field}"')
+
+    def test_home_exposes_language_selector_and_translation_catalog(self):
+        root = Path(settings.BASE_DIR)
+        source = self.client.get("/").content.decode("utf-8")
+        javascript = (root / "static" / "i18n.js").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("data-language-selector", source)
+        self.assertIn('value="es"', source)
+        self.assertIn('value="en"', source)
+        self.assertIn('value="pt-BR"', source)
+        self.assertIn("{% static 'i18n.js' %}", (
+            root / "templates" / "index.html"
+        ).read_text(encoding="utf-8"))
+        self.assertIn('name="language" value="es" data-language-field', source)
+        self.assertIn('navigator.languages', javascript)
+        self.assertIn('navigator.language', javascript)
+        self.assertIn('window.localStorage', javascript)
+        self.assertIn('"pt-BR"', javascript)
+        self.assertIn('document.documentElement.lang = normalized', javascript)
+
+    def test_language_detection_selection_and_persistence_in_browser(self):
+        try:
+            from playwright.sync_api import Error as PlaywrightError
+            from playwright.sync_api import sync_playwright
+        except ImportError:
+            self.skipTest("Playwright is not installed")
+
+        _, fulfill_local_assets = self._marketing_page_fixture()
+        cases = (
+            ("en-US", "en", "We turn data and processes into value for your business"),
+            ("pt-BR", "pt-BR", "Transformamos dados e processos em valor para o seu negócio"),
+            ("fr-FR", "es", "Transformamos datos y procesos en valor para tu negocio"),
+        )
+
+        with sync_playwright() as playwright:
+            try:
+                browser = playwright.chromium.launch(channel="chrome", headless=True)
+            except PlaywrightError as error:
+                self.skipTest(f"Installed Chrome is unavailable: {error}")
+
+            try:
+                for locale, expected_language, expected_heading in cases:
+                    with self.subTest(locale=locale):
+                        context = browser.new_context(
+                            locale=locale,
+                            viewport={"width": 1440, "height": 900},
+                        )
+                        try:
+                            context.route("**/*", fulfill_local_assets)
+                            page = context.new_page()
+                            page.goto(
+                                "https://devlink.test/",
+                                wait_until="domcontentloaded",
+                            )
+                            page.wait_for_function("() => Boolean(window.devLinkI18n)")
+                            self.assertEqual(
+                                page.get_attribute("html", "lang"),
+                                expected_language,
+                            )
+                            self.assertEqual(
+                                page.locator("[data-language-selector]").input_value(),
+                                expected_language,
+                            )
+                            self.assertEqual(
+                                page.locator(".hero h1").inner_text(),
+                                expected_heading,
+                            )
+                            self.assertEqual(
+                                page.locator("[data-language-field]").input_value(),
+                                expected_language,
+                            )
+                            self.assertEqual(
+                                page.evaluate(
+                                    "document.body.scrollWidth - "
+                                    "document.body.clientWidth"
+                                ),
+                                0,
+                            )
+                        finally:
+                            context.close()
+
+                context = browser.new_context(
+                    locale="pt-BR",
+                    viewport={"width": 390, "height": 844},
+                )
+                try:
+                    context.route("**/*", fulfill_local_assets)
+                    page = context.new_page()
+                    page.goto("https://devlink.test/", wait_until="domcontentloaded")
+                    page.locator("[data-nav-toggle]").click()
+                    selector_box = page.locator(
+                        "[data-language-selector]"
+                    ).bounding_box()
+                    self.assertIsNotNone(selector_box)
+                    self.assertGreaterEqual(selector_box["height"], 44)
+                    self.assertLessEqual(
+                        selector_box["x"] + selector_box["width"],
+                        390,
+                    )
+                    page.locator("[data-language-selector]").select_option("en")
+                    self.assertEqual(
+                        page.evaluate("localStorage.getItem('devlink.language')"),
+                        "en",
+                    )
+                    page.reload(wait_until="domcontentloaded")
+                    self.assertEqual(page.get_attribute("html", "lang"), "en")
+                    self.assertEqual(
+                        page.locator("[data-language-selector]").input_value(),
+                        "en",
+                    )
+                finally:
+                    context.close()
+            finally:
+                browser.close()
 
     def test_home_exposes_marketing_layout_contract(self):
         response = self.client.get("/")
@@ -559,7 +693,7 @@ class FrontendContractTests(SimpleTestCase):
             "Desarrollo de aplicaciones Android",
             "Aplicaciones web a medida",
         ):
-            self.assertIn(f"<h3>{heading}</h3>", services)
+            self.assertIn(f">{heading}</h3>", services)
 
     def test_marketing_hero_uses_a_solid_non_luminous_surface(self):
         css = (

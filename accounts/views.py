@@ -417,6 +417,9 @@ def save_question_client(request):
 def home_view(request):
     """Vista para la página principal con formulario de contacto"""
     if request.method == 'POST':
+        language = request.POST.get('language', 'es')
+        if language not in {'es', 'en', 'pt-BR'}:
+            language = 'es'
         nombre = request.POST.get('nombre', '')
         email = request.POST.get('email', '')
         empresa = request.POST.get('empresa', '')
@@ -446,6 +449,7 @@ def home_view(request):
             Empresa: {empresa}
             Proyecto: {proyecto}
             Newsletter: {'Sí' if newsletter else 'No'}
+            Idioma: {language}
             
             ID de consulta: #{contact.id}
             Ver en panel: https://devlink.com.ar/admin-panel/contact-requests/
@@ -461,8 +465,13 @@ def home_view(request):
         except Exception as e:
             print(f"Error enviando email: {e}")
         
-        messages.success(request, '¡Gracias por contactarnos! Te responderemos en menos de 24 horas.')
-        return redirect('/#contacto')
+        success_messages = {
+            'es': '¡Gracias por contactarnos! Te responderemos en menos de 24 horas.',
+            'en': 'Thank you for contacting us! We will reply within 24 hours.',
+            'pt-BR': 'Agradecemos o contato! Responderemos em até 24 horas.',
+        }
+        messages.success(request, success_messages[language])
+        return redirect(f'/?lang={language}#contacto')
     
     return render(request, 'index.html')
 

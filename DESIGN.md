@@ -246,7 +246,7 @@ La forma canónica es un rectángulo suavemente técnico: 16px para paneles, 12p
 
 ### Navigation
 
-La navegación web usa texto secundario y activa azul o fondo azul muy claro. El CTA de cabecera adopta el botón primario. Por debajo de 960px se transforma en un panel blanco controlado por botón, con estado expandido, foco administrado e `inert` al cerrarse. Las barras del portal y administración aumentan densidad, permiten wrap y apilan acciones en móvil.
+La navegación web usa texto secundario y activa azul o fondo azul muy claro. El CTA de cabecera adopta el botón primario. El selector de idioma se presenta como un campo nativo compacto, conserva un objetivo táctil de al menos 42px y pasa a ocupar todo el ancho dentro del menú móvil. Por debajo de 960px la navegación se transforma en un panel blanco controlado por botón, con estado expandido, foco administrado e `inert` al cerrarse. Las barras del portal y administración aumentan densidad, permiten wrap y apilan acciones en móvil.
 
 ### Data Tables
 

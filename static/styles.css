@@ -1062,7 +1062,7 @@ textarea::placeholder {
   gap: 0.8rem;
 }
 
-.hero-card li span {
+.hero-card li > span:first-child {
   display: inline-block;
   font-weight: 700;
   font-size: 1.4rem;
@@ -1501,12 +1501,12 @@ textarea::placeholder {
   font-weight: 700;
 }
 
-.suite-cta span {
+.suite-cta__arrow {
   font-size: 1.35rem;
   transition: transform 0.25s ease;
 }
 
-.suite-cta:hover span {
+.suite-cta:hover .suite-cta__arrow {
   transform: translateX(5px);
 }
 
@@ -2321,6 +2321,40 @@ textarea::placeholder {
   gap: clamp(0.9rem, 1.6vw, 1.55rem);
   font-size: 0.91rem;
   font-weight: 650;
+  white-space: nowrap;
+}
+
+.marketing-page .language-selector {
+  display: inline-flex;
+  align-items: center;
+}
+
+.marketing-page .language-selector select {
+  min-width: 72px;
+  min-height: 42px;
+  padding: 0.55rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 9px;
+  background: var(--surface-white);
+  color: var(--brand-900);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.marketing-page .language-selector select:hover {
+  border-color: rgba(18, 100, 246, 0.42);
+  background: var(--surface-subtle);
+}
+
+.marketing-page .language-selector select:focus-visible {
+  border-color: var(--brand-600);
+  box-shadow: 0 0 0 3px rgba(18, 100, 246, 0.18);
 }
 
 .marketing-page .nav-links a {
@@ -2554,11 +2588,17 @@ textarea::placeholder {
   font-size: 0.91rem;
 }
 
-.marketing-page .hero-card li span {
+.marketing-page .hero-card li > span:first-child {
   margin: 0;
   color: var(--accent-400);
   font-size: 1rem;
   font-variant-numeric: tabular-nums;
+}
+
+.marketing-page .hero-card-copy {
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
 }
 
 .marketing-page .hero-badge {
@@ -3221,6 +3261,22 @@ textarea::placeholder {
   }
 }
 
+@media (min-width: 960px) and (max-width: 1240px) {
+  .marketing-page .nav-links {
+    gap: 0.55rem;
+    font-size: 0.82rem;
+  }
+
+  .marketing-page .nav-links .nav-cta {
+    padding-inline: 0.72rem;
+  }
+
+  .marketing-page .language-selector select {
+    min-width: 66px;
+    padding-inline: 0.4rem;
+  }
+}
+
 @media (max-width: 1020px) {
   .marketing-page .hero-grid {
     grid-template-columns: minmax(0, 1fr) minmax(320px, 0.72fr);
@@ -3275,6 +3331,16 @@ textarea::placeholder {
   .marketing-page .nav-links .nav-cta {
     justify-content: center;
     margin-top: 0.25rem;
+  }
+
+  .marketing-page .language-selector,
+  .marketing-page .language-selector select {
+    width: 100%;
+  }
+
+  .marketing-page .language-selector select {
+    min-height: 46px;
+    padding-inline: 0.8rem;
   }
 
   .marketing-page .hero {

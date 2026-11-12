@@ -34,7 +34,11 @@
         <a href="#suite-lite" data-i18n="nav.suite">Suite Lite</a>
         <a href="#soluciones" data-i18n="nav.solutions">Soluciones</a>
         <a href="#metodologia" data-i18n="nav.method">Metodología</a>
+        {% if user.is_authenticated and user.is_superuser %}
+        <a href="{% url 'admin_panel:dashboard' %}" class="nav-link" data-i18n="nav.admin">Panel de administración</a>
+        {% else %}
         <a href="/portal/" class="nav-link" data-i18n="nav.portal">Portal Cliente</a>
+        {% endif %}
         <label class="language-selector">
           <span class="sr-only" data-i18n="nav.language">Idioma</span>
           <select data-language-selector aria-label="Idioma" data-i18n-aria-label="nav.language">

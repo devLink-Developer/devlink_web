@@ -2,7 +2,10 @@ from unittest.mock import patch
 from types import SimpleNamespace
 
 from django.contrib.messages import get_messages
-from django.test import SimpleTestCase, override_settings
+from django.contrib.auth import get_user_model
+from django.template.loader import render_to_string
+from django.test import SimpleTestCase, TestCase, override_settings
+from django.urls import reverse
 
 
 @override_settings(
@@ -78,3 +81,45 @@ class HomeContactLanguageTests(SimpleTestCase):
             "/?lang=es#contacto",
             fetch_redirect_response=False,
         )
+
+
+class AdminNavigationTests(TestCase):
+    def setUp(self):
+        self.admin = get_user_model().objects.create_superuser(
+            username="navigation-admin",
+            email="navigation-admin@example.com",
+            password="test-password-only",
+        )
+
+    def test_public_site_shows_admin_panel_link_for_superuser_session(self):
+        self.client.force_login(self.admin)
+
+        response = self.client.get(reverse("home"))
+
+        self.assertContains(response, 'href="/admin-panel/"')
+        self.assertContains(response, 'data-i18n="nav.admin"')
+        self.assertNotContains(response, 'data-i18n="nav.portal"')
+
+    def test_public_site_keeps_client_portal_for_anonymous_visitors(self):
+        response = self.client.get(reverse("home"))
+
+        self.assertContains(response, 'data-i18n="nav.portal"')
+        self.assertNotContains(response, 'data-i18n="nav.admin"')
+
+    def test_admin_dashboard_links_back_to_public_site(self):
+        rendered = render_to_string(
+            "admin_panel/dashboard.html",
+            {
+                "user": self.admin,
+                "total_users": 0,
+                "active_users": 0,
+                "total_products": 0,
+                "active_products": 0,
+                "total_contacts": 0,
+                "pending_contacts": 0,
+                "recent_users": [],
+            },
+        )
+
+        self.assertIn('href="/"', rendered)
+        self.assertIn("Ver sitio", rendered)

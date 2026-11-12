@@ -184,6 +184,26 @@ class IssuanceTests(TransactionTestCase):
         self.assertEqual(self.invoice.customer_snapshot['name'], 'Cliente')
         self.assertEqual(self.invoice.total, Decimal('100.00'))
 
+    def test_credit_note_uses_original_customer_snapshot_after_customer_changes(self):
+        issue_invoice(self.invoice.pk, self.user)
+        self.invoice.refresh_from_db()
+        original_document = self.invoice.customer_snapshot['document_number']
+        self.customer.document_number = '30712345672'
+        self.customer.active = False
+        self.customer.save(update_fields=['document_number', 'active'])
+        note = self.make_invoice('50.00', document_type=13, original=self.invoice)
+        FakeArca.last = 0
+        FakeArca.response = {'outcome': 'authorized', 'number': 1, 'document_type': 13,
+            'point_of_sale': 7, 'cae': '22345678901234', 'cae_due': '20301102', 'messages': []}
+
+        issue_invoice(note.pk, self.user)
+
+        note.refresh_from_db()
+        self.assertEqual(note.status, 'authorized')
+        self.assertEqual(note.customer_snapshot, self.invoice.customer_snapshot)
+        payload = FakeArca.calls[-1]['FeDetReq']['FECAEDetRequest'][0]
+        self.assertEqual(str(payload['DocNro']), original_document)
+
     def test_consultation_in_another_currency_is_not_recovered(self):
         FakeArca.failure = TimeoutError()
         issue_invoice(self.invoice.pk, self.user)

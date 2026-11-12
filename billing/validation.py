@@ -28,11 +28,12 @@ def validate_invoice(invoice, *, historical=False):
     if invoice.document_type not in (11, 13) or invoice.concept not in (1, 2, 3):
         raise ValidationError('Solo se admiten comprobantes C y conceptos válidos.')
     invoice.configuration.issuer.full_clean()
-    invoice.customer.full_clean()
-    if invoice.customer.vat_condition not in dict(VAT_CONDITIONS):
-        raise ValidationError('Seleccioná la condición de IVA del receptor.')
-    if not invoice.customer.active:
-        raise ValidationError('El cliente está inactivo.')
+    if invoice.document_type != 13:
+        invoice.customer.full_clean()
+        if invoice.customer.vat_condition not in dict(VAT_CONDITIONS):
+            raise ValidationError('Seleccioná la condición de IVA del receptor.')
+        if not invoice.customer.active:
+            raise ValidationError('El cliente está inactivo.')
     if invoice.concept in (2, 3):
         if not all((invoice.service_from, invoice.service_to, invoice.due_date)):
             raise ValidationError('Los servicios requieren período y vencimiento de pago.')
@@ -61,8 +62,12 @@ def validate_invoice(invoice, *, historical=False):
             raise ValidationError('La nota de crédito requiere una factura C autorizada.')
         if original.environment != invoice.configuration.environment or original.configuration.issuer_id != invoice.configuration.issuer_id:
             raise ValidationError('La nota y la factura deben pertenecer al mismo emisor y ambiente.')
-        if str(invoice.customer.document_number) != str(original.customer_snapshot.get('document_number')) or invoice.customer.document_type != original.customer_snapshot.get('document_type'):
-            raise ValidationError('La nota de crédito debe conservar la identificación del receptor original.')
+        if invoice.customer_id != original.customer_id:
+            raise ValidationError('La nota de crédito debe conservar el receptor de la factura original.')
+        original_customer = original.customer_snapshot
+        if (not original_customer or original_customer.get('vat_condition') not in dict(VAT_CONDITIONS)
+                or not original_customer.get('document_number') or not original_customer.get('document_type')):
+            raise ValidationError('La factura original no conserva una identificación fiscal completa del receptor.')
         if invoice.cancellation_kind not in ('total', 'partial'):
             raise ValidationError('Indicá si la anulación es total o parcial.')
         if not invoice.cancellation_reason.strip():
@@ -102,10 +107,13 @@ def validate_invoice(invoice, *, historical=False):
 def snapshots(invoice):
     issuer = invoice.configuration.issuer
     customer = invoice.customer
-    return ({'name': issuer.name, 'cuit': issuer.cuit, 'address': issuer.address,
-        'gross_income': issuer.gross_income, 'activities_since': issuer.activities_since.isoformat() if issuer.activities_since else ''},
+    customer_snapshot = (dict(invoice.original.customer_snapshot)
+        if invoice.document_type == 13 and invoice.original_id else
         {'name': customer.name, 'document_type': customer.document_type, 'document_number': customer.document_number,
          'vat_condition': customer.vat_condition, 'address': customer.address})
+    return ({'name': issuer.name, 'cuit': issuer.cuit, 'address': issuer.address,
+        'gross_income': issuer.gross_income, 'activities_since': issuer.activities_since.isoformat() if issuer.activities_since else ''},
+        customer_snapshot)
 
 
 def invoice_payload(invoice):

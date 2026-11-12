@@ -179,6 +179,10 @@ class BillingViewsTests(TestCase):
         self.assertEqual(credit_line.original_line_id, line.pk)
         self.assertEqual(credit_line.unit_price, line.unit_price)
 
+        workspace = self.client.get(reverse('billing:cancellations'), {'customer': self.customer.pk})
+        self.assertContains(workspace, 'historial registrado en devLink')
+        self.assertContains(workspace, 'créditos externos')
+
     def test_old_credit_note_action_continues_existing_draft_without_duplication(self):
         self.authorize()
         line = self.invoice.lines.get()

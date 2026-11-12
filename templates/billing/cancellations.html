@@ -25,7 +25,7 @@
         <input id="invoice-{{ item.invoice.pk }}" type="checkbox" name="invoices" value="{{ item.invoice.pk }}"{% if item.state == 'cancelled' or item.state == 'pending' or item.state == 'draft' %} disabled{% endif %}{% if selected_invoice == item.invoice.pk|stringformat:'s' %} checked{% endif %}>
         <label for="invoice-{{ item.invoice.pk }}"><span>Factura C</span><strong>{{ item.invoice.fiscal_number }}</strong><small>{{ item.invoice.issue_date|date:'d/m/Y' }}</small></label>
       </div>
-      <div class="cancellation-state"><span class="credit-state {{ item.state }}">{{ item.state_label }}</span>{% if item.invoice.source == 'import' %}<small>Importada desde PDF</small>{% endif %}</div>
+      <div class="cancellation-state"><span class="credit-state {{ item.state }}">{{ item.state_label }}</span>{% if item.invoice.source == 'import' %}<small>Importada desde PDF</small><small>Saldo según el historial registrado en devLink; verificá créditos externos.</small>{% endif %}</div>
       <dl class="balance-grid"><div><dt>Original</dt><dd>$ {{ item.original_total|floatformat:2 }}</dd></div><div><dt>Ya autorizado</dt><dd>$ {{ item.authorized_amount|floatformat:2 }}</dd></div><div><dt>Pendiente</dt><dd>$ {{ item.reserved_amount|floatformat:2 }}</dd></div><div class="available"><dt>Disponible</dt><dd>$ {{ item.available_amount|floatformat:2 }}</dd></div></dl>
       <div class="cancellation-actions">
         <a href="{% url 'billing:detail' item.invoice.pk %}">Ver factura</a>

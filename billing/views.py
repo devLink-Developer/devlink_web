@@ -270,9 +270,11 @@ def detail(request, invoice_id):
     if invoice.document_type == 11 and invoice.status == 'authorized':
         cancellation_summary = credit_summary(invoice)
         related_credit_notes = invoice.credit_notes.select_related('created_by').order_by('-created_at')
+    receiver = (invoice.original.customer_snapshot if invoice.document_type == 13 and invoice.editable
+        else invoice.customer if invoice.editable else invoice.customer_snapshot)
     return render(request, 'billing/detail.html', {'invoice': invoice, 'attempts': invoice.attempts.all()[:30],
         'issuer': invoice.configuration.issuer if invoice.editable else invoice.issuer_snapshot,
-        'receiver': invoice.customer if invoice.editable else invoice.customer_snapshot,
+        'receiver': receiver,
         'display_point_of_sale': invoice.configuration.point_of_sale if invoice.editable else invoice.point_of_sale,
         'cancellation_summary': cancellation_summary, 'related_credit_notes': related_credit_notes})
 

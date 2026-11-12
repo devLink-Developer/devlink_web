@@ -8,7 +8,7 @@ from threading import Barrier, Event
 from django.core.exceptions import ValidationError
 from django.test import TransactionTestCase
 from django.contrib.auth import get_user_model
-from django.db import connection, connections
+from django.db import connection, connections, transaction
 from django.utils import timezone
 from datetime import timedelta
 
@@ -163,8 +163,9 @@ class IssuanceTests(TransactionTestCase):
         Invoice.objects.filter(pk=current.pk).update(total='50.00')
         current.refresh_from_db()
 
-        with self.assertRaises(ValidationError):
-            _credit_balance(current)
+        with transaction.atomic():
+            with self.assertRaises(ValidationError):
+                _credit_balance(current)
 
     def test_disabled_configuration_and_nonadmin_never_send(self):
         self.config.enabled = False

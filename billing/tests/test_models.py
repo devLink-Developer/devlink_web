@@ -59,6 +59,46 @@ class FiscalValidationTests(TestCase):
         with self.assertRaises(ValidationError):
             validate_invoice(self.invoice)
 
+    def test_credit_line_must_reference_its_original_invoice(self):
+        Invoice.objects.filter(pk=self.invoice.pk).update(status='authorized')
+        self.invoice.refresh_from_db()
+        other = Invoice.objects.create(configuration=self.config, customer=self.customer,
+            issue_date=date.today(), concept=1)
+        other_line = InvoiceLine.objects.create(invoice=other, description='Otro servicio',
+            quantity='1', unit_price='20.00')
+        note = Invoice.objects.create(configuration=self.config, customer=self.customer,
+            issue_date=date.today(), concept=1, document_type=13, original=self.invoice)
+        credit_line = InvoiceLine(invoice=note, description='Ajuste', quantity='1',
+            unit_price='20.00')
+        credit_line.original_line = other_line
+
+        with self.assertRaises(ValidationError):
+            credit_line.full_clean()
+
+    def test_normal_invoice_line_cannot_reference_an_original_line(self):
+        source_line = self.invoice.lines.get()
+        normal_invoice = Invoice.objects.create(configuration=self.config, customer=self.customer,
+            issue_date=date.today(), concept=1)
+        line = InvoiceLine(invoice=normal_invoice, description='Servicio', quantity='1',
+            unit_price='10.00')
+        line.original_line = source_line
+
+        with self.assertRaises(ValidationError):
+            line.full_clean()
+
+    def test_authorized_cancellation_metadata_is_immutable(self):
+        Invoice.objects.filter(pk=self.invoice.pk).update(status='authorized')
+        self.invoice.refresh_from_db()
+        note = Invoice.objects.create(configuration=self.config, customer=self.customer,
+            issue_date=date.today(), concept=1, document_type=13, original=self.invoice,
+            cancellation_kind='total', cancellation_reason='Error de facturación')
+        Invoice.objects.filter(pk=note.pk).update(status='authorized')
+        note.refresh_from_db()
+        note.cancellation_reason = 'Motivo modificado'
+
+        with self.assertRaises(ValidationError):
+            note.save()
+
     def test_enabled_configuration_requires_point_of_sale(self):
         self.config.enabled = True
         self.config.point_of_sale = None

@@ -11,6 +11,7 @@ from django.utils import timezone
 
 ENVIRONMENTS = [('HOMO', 'Homologación'), ('PROD', 'Producción')]
 DOCUMENT_TYPES = [(11, 'Factura C'), (13, 'Nota de crédito C')]
+CANCELLATION_KINDS = [('total', 'Anulación total'), ('partial', 'Anulación parcial')]
 VAT_CONDITIONS = [(1, 'IVA Responsable Inscripto'), (4, 'IVA Sujeto Exento'),
     (5, 'Consumidor Final'), (6, 'Responsable Monotributo'), (7, 'Sujeto No Categorizado'),
     (8, 'Proveedor del Exterior'), (9, 'Cliente del Exterior'), (10, 'IVA Liberado – Ley 19.640'),
@@ -119,6 +120,9 @@ class Invoice(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT, verbose_name='Cliente')
     document_type = models.PositiveSmallIntegerField('Comprobante', choices=DOCUMENT_TYPES, default=11)
     original = models.ForeignKey('self', null=True, blank=True, on_delete=models.PROTECT, related_name='credit_notes')
+    cancellation_kind = models.CharField('Alcance de la anulación', max_length=7,
+        choices=CANCELLATION_KINDS, blank=True)
+    cancellation_reason = models.CharField('Motivo de la anulación', max_length=500, blank=True)
     status = models.CharField(max_length=12, choices=STATUS_CHOICES, default='draft')
     issue_date = models.DateField('Fecha de emisión', default=timezone.localdate)
     concept = models.PositiveSmallIntegerField('Concepto', choices=[(1, 'Productos'), (2, 'Servicios'),
@@ -173,6 +177,8 @@ class Invoice(models.Model):
 
 class InvoiceLine(models.Model):
     invoice = models.ForeignKey(Invoice, related_name='lines', on_delete=models.CASCADE)
+    original_line = models.ForeignKey('self', null=True, blank=True, on_delete=models.PROTECT,
+        related_name='credit_lines', verbose_name='Renglón original')
     description = models.CharField('Descripción', max_length=500)
     quantity = models.DecimalField('Cantidad', max_digits=12, decimal_places=3, default=1,
         validators=[MinValueValidator(Decimal('0.001'))])
@@ -194,6 +200,17 @@ class InvoiceLine(models.Model):
                 parents.add(previous_parent)
         if Invoice.objects.filter(pk__in=parents).exclude(status__in=EDITABLE_STATES).exists():
             raise ValidationError('No se pueden modificar las líneas de un comprobante emitido o pendiente.')
+
+    def clean(self):
+        super().clean()
+        if not self.original_line_id:
+            return
+        if self.invoice.document_type != 13 or not self.invoice.original_id:
+            raise ValidationError({'original_line': 'Solo una nota de crédito asociada puede referenciar un renglón original.'})
+        if self.original_line.invoice_id != self.invoice.original_id:
+            raise ValidationError({'original_line': 'El renglón no pertenece a la factura asociada.'})
+        if self.original_line.original_line_id:
+            raise ValidationError({'original_line': 'El renglón original debe pertenecer a una factura, no a otra nota.'})
 
     def save(self, *args, **kwargs):
         self._check_editable()

@@ -13,7 +13,7 @@ from django.utils import timezone
 from datetime import timedelta
 
 from billing.models import ArcaConfiguration, Customer, Invoice, InvoiceLine, Issuer
-from billing.services import issue_invoice, reconcile_invoice
+from billing.services import _credit_balance, issue_invoice, reconcile_invoice
 
 
 class FakeArca:
@@ -58,9 +58,20 @@ class IssuanceTests(TransactionTestCase):
         self.invoice = self.make_invoice()
 
     def make_invoice(self, amount='100.00', **kwargs):
+        original = kwargs.get('original')
+        is_credit = kwargs.get('document_type') == 13
+        if is_credit:
+            kwargs.setdefault('cancellation_kind', 'partial')
+            kwargs.setdefault('cancellation_reason', 'Ajuste de prueba')
         inv = Invoice.objects.create(configuration=self.config, customer=self.customer,
             issue_date=date.today(), concept=1, **kwargs)
-        InvoiceLine.objects.create(invoice=inv, description='Servicio de prueba', quantity=1, unit_price=amount)
+        if is_credit:
+            source_line = original.lines.first()
+            InvoiceLine.objects.create(invoice=inv, original_line=source_line,
+                description=source_line.description, quantity=Decimal(amount) / source_line.unit_price,
+                unit_price=source_line.unit_price)
+        else:
+            InvoiceLine.objects.create(invoice=inv, description='Servicio de prueba', quantity=1, unit_price=amount)
         return inv
 
     def test_duplicate_submission_returns_existing_authorization(self):
@@ -138,6 +149,21 @@ class IssuanceTests(TransactionTestCase):
         with self.assertRaises(ValidationError):
             issue_invoice(another.pk, self.user)
         self.assertEqual(len(FakeArca.calls), 2)
+
+    def test_locked_credit_balance_rejects_overcrediting_one_source_line(self):
+        InvoiceLine.objects.create(invoice=self.invoice, description='Segundo servicio', quantity=1, unit_price='100.00')
+        issue_invoice(self.invoice.pk, self.user)
+        self.invoice.refresh_from_db()
+        source_line = self.invoice.lines.first()
+        prior = self.make_invoice('100.00', document_type=13, original=self.invoice)
+        Invoice.objects.filter(pk=prior.pk).update(status='authorized', total='100.00')
+        current = self.make_invoice('50.00', document_type=13, original=self.invoice)
+        current.lines.update(original_line=source_line, quantity=Decimal('0.500'), unit_price=source_line.unit_price)
+        Invoice.objects.filter(pk=current.pk).update(total='50.00')
+        current.refresh_from_db()
+
+        with self.assertRaises(ValidationError):
+            _credit_balance(current)
 
     def test_disabled_configuration_and_nonadmin_never_send(self):
         self.config.enabled = False

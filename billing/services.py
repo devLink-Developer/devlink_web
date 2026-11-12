@@ -5,10 +5,11 @@ from decimal import Decimal, InvalidOperation
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models import Max, Sum
+from django.db.models import Max
 from django.utils import timezone
 
 from .arca import ArcaClient, valid_cae
+from .credits import credit_summary
 from .models import ArcaConfiguration, Invoice, InvoiceAttempt, EDITABLE_STATES, PENDING_STATES
 from .validation import invoice_payload, snapshots, validate_invoice
 from .locks import configuration_operation
@@ -33,10 +34,25 @@ def _credit_balance(invoice):
     if invoice.document_type != 13:
         return
     original = Invoice.objects.select_for_update().get(pk=invoice.original_id)
-    credited = original.credit_notes.exclude(pk=invoice.pk).filter(
-        status__in=('authorized', 'sending', 'unknown')).aggregate(total=Sum('total'))['total'] or Decimal('0')
-    if credited + invoice.total > original.total:
-        raise ValidationError(f'La nota excede el saldo acreditable: $ {original.total - credited:.2f}.')
+    summary = credit_summary(original, exclude_note_id=invoice.pk)
+    if invoice.total > summary.available_amount:
+        raise ValidationError(f'La nota excede el saldo acreditable: $ {summary.available_amount:.2f}.')
+    if invoice.cancellation_kind == 'total' and invoice.total != summary.available_amount:
+        raise ValidationError('La anulación total debe cubrir exactamente el saldo disponible de la factura.')
+    if invoice.cancellation_kind == 'partial':
+        available_by_line = {item.line.pk: item.available_quantity for item in summary.lines}
+        requested_by_line = {}
+        for line in invoice.lines.select_related('original_line'):
+            if not line.original_line_id or line.original_line.invoice_id != original.pk:
+                raise ValidationError('La anulación parcial contiene un renglón sin correspondencia con la factura original.')
+            if line.unit_price != line.original_line.unit_price:
+                raise ValidationError('La anulación parcial debe conservar el precio unitario original.')
+            requested_by_line[line.original_line_id] = (
+                requested_by_line.get(line.original_line_id, Decimal('0')) + line.quantity
+            )
+        for line_id, requested in requested_by_line.items():
+            if requested > available_by_line.get(line_id, Decimal('0')):
+                raise ValidationError('La cantidad a anular supera el saldo disponible del renglón original.')
 
 
 def _complete_approval(result, invoice):

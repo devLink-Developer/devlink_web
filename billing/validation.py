@@ -55,6 +55,7 @@ def validate_invoice(invoice, *, historical=False):
     if not Decimal('0') < invoice.total <= Decimal('9999999999999.99'):
         raise ValidationError('El total debe ser positivo y estar dentro del límite de ARCA.')
     if invoice.document_type == 13:
+        from .credits import credit_summary
         original = invoice.original
         if not original or original.status != 'authorized' or original.document_type != 11:
             raise ValidationError('La nota de crédito requiere una factura C autorizada.')
@@ -62,6 +63,38 @@ def validate_invoice(invoice, *, historical=False):
             raise ValidationError('La nota y la factura deben pertenecer al mismo emisor y ambiente.')
         if str(invoice.customer.document_number) != str(original.customer_snapshot.get('document_number')) or invoice.customer.document_type != original.customer_snapshot.get('document_type'):
             raise ValidationError('La nota de crédito debe conservar la identificación del receptor original.')
+        if invoice.cancellation_kind not in ('total', 'partial'):
+            raise ValidationError('Indicá si la anulación es total o parcial.')
+        if not invoice.cancellation_reason.strip():
+            raise ValidationError('Ingresá el motivo de la anulación.')
+        if len(invoice.cancellation_reason) > 500:
+            raise ValidationError('El motivo de la anulación no puede superar los 500 caracteres.')
+
+        summary = credit_summary(original, exclude_note_id=invoice.pk)
+        if summary.existing_editable_note:
+            raise ValidationError('La factura ya tiene otra nota de crédito editable.')
+        if summary.reserved_amount > Decimal('0'):
+            raise ValidationError('La factura tiene una anulación pendiente de respuesta.')
+        if invoice.total > summary.available_amount:
+            raise ValidationError(f'La nota excede el saldo acreditable: $ {summary.available_amount:.2f}.')
+
+        if invoice.cancellation_kind == 'total':
+            if len(lines) != 1 or lines[0].original_line_id or lines[0].quantity != Decimal('1'):
+                raise ValidationError('La anulación total debe conservar un único renglón resumen sin referencia parcial.')
+            if invoice.total != summary.available_amount:
+                raise ValidationError('La anulación total debe cubrir exactamente el saldo disponible de la factura.')
+        else:
+            if summary.partial_block_reason:
+                raise ValidationError(summary.partial_block_reason)
+            available_by_line = {item.line.pk: item.available_quantity for item in summary.lines}
+            for line in lines:
+                source = line.original_line
+                if not source:
+                    raise ValidationError('Cada renglón de una anulación parcial debe referenciar el renglón original.')
+                if line.unit_price != source.unit_price:
+                    raise ValidationError('El precio unitario de una anulación parcial debe coincidir con la factura original.')
+                if line.quantity > available_by_line.get(source.pk, Decimal('0')):
+                    raise ValidationError(f'La cantidad de “{source.description}” supera el saldo disponible.')
     elif invoice.original_id:
         raise ValidationError('Una factura no puede tener comprobante asociado.')
 

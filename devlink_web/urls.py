@@ -15,6 +15,7 @@ urlpatterns = [
     path('dashboard/whatsapp-report/', whatsapp_report_client, name='whatsapp_report_client'),
     path('dashboard/edit-questions/', edit_questions_client, name='edit_questions_client'),
     path('dashboard/save-question/', save_question_client, name='save_question_client'),
+    path('admin-panel/billing/', include('billing.urls')),
     path('admin-panel/', include('admin_panel.urls')),
     
     # Documentación (solo usuarios logueados)

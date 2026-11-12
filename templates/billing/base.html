@@ -1,0 +1,23 @@
+{% extends 'base.html' %}{% load static %}
+{% block title %}{% block billing_title %}Facturación{% endblock %} · devLink{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{% static 'billing/billing.css' %}">
+<div class="billing-shell">
+  <a class="skip-link" href="#billing-main">Ir al contenido</a>
+  <header class="billing-header">
+    <a href="{% url 'billing:dashboard' %}" class="billing-brand"><span>dev<span>Link</span></span><span class="brand-section">Facturación</span></a>
+    <nav aria-label="Navegación de facturación">
+      <a href="{% url 'billing:dashboard' %}">Comprobantes</a>
+      <a href="{% url 'billing:customers' %}">Clientes</a>
+      <a href="{% url 'billing:settings' %}">Configuración fiscal</a>
+      <a href="{% url 'admin_panel:dashboard' %}">Volver al panel</a>
+    </nav>
+  </header>
+  <main id="billing-main" class="billing-main">
+    {% if messages %}<div class="billing-messages" role="status">{% for message in messages %}<p class="notice {{ message.tags }}">{{ message }}</p>{% endfor %}</div>{% endif %}
+    {% block billing_content %}{% endblock %}
+  </main>
+  <footer class="billing-footer">devLink · Facturación propia · Horario de Argentina</footer>
+</div>
+{% block billing_scripts %}{% endblock %}
+{% endblock %}

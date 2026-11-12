@@ -1,0 +1,16 @@
+# Optional overlay for the existing devLink deployment. Never mounts credentials under /app/media.
+services:
+  web:
+    environment:
+      BILLING_CERTIFICATE_ROOT: /run/devlink-arca
+      BILLING_ALLOW_PRODUCTION: ${BILLING_ALLOW_PRODUCTION:-False}
+      BILLING_ARCHIVE_ROOT: /home/appuser/.local/share/devlink/invoices
+    volumes:
+      - type: bind
+        source: ${BILLING_CERTIFICATE_ROOT_HOST:?Define la carpeta privada de certificados en el servidor}
+        target: /run/devlink-arca
+        read_only: true
+      - billing_archive:/home/appuser/.local/share/devlink/invoices
+
+volumes:
+  billing_archive:

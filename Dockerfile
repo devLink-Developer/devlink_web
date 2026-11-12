@@ -14,19 +14,17 @@ RUN apt-get update \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy project
-COPY . .
-
-# Create staticfiles directory
-RUN mkdir -p /app/staticfiles
-
-# Collect static files
-RUN python manage.py collectstatic --noinput
-
-# Create non-root user
+# Prepare writable runtime directories before copying source with its owner.
 RUN adduser --disabled-password --gecos '' appuser
-RUN chown -R appuser:appuser /app
+RUN mkdir -p /app/staticfiles /home/appuser/.local/share/devlink/invoices \
+    && chown appuser:appuser /app /app/staticfiles \
+    && chown -R appuser:appuser /home/appuser/.local
+COPY --chown=appuser:appuser . .
 USER appuser
+
+# Static assets are created by their final runtime owner, avoiding a recursive
+# ownership rewrite of the entire application and generated static tree.
+RUN python manage.py collectstatic --noinput
 
 EXPOSE 8002
 

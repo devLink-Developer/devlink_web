@@ -116,8 +116,16 @@ staticfiles/
 .worktrees/
 
 # Docker
-.dockerignore
 emails_enviados.txt
 mails.xlsx
 send_mass_campaign.py
 accounts/migrations/0003_contactrequest.py
+
+# Private billing credentials and local verification artifacts
+*.key
+*.pfx
+*.p12
+*.pass
+.billing-private/
+.billing-test/
+.impeccable/review/billing/

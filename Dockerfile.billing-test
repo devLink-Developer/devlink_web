@@ -1,0 +1,6 @@
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt requirements-billing-test.txt ./
+RUN pip install --no-cache-dir -r requirements-billing-test.txt
+ENV DJANGO_SETTINGS_MODULE=devlink_web.test_settings
+CMD ["python", "manage.py", "test", "--noinput"]

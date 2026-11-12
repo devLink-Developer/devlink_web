@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     'accounts',
     'dashboard',
     'admin_panel',
+    'billing',
 ]
 
 MIDDLEWARE = [
@@ -126,3 +127,9 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 CORS_ALLOW_CREDENTIALS = True
+
+# ARCA credentials live outside the repository and the public media directory.
+BILLING_CERTIFICATE_ROOT = config('BILLING_CERTIFICATE_ROOT', default='')
+BILLING_ALLOW_PRODUCTION = config('BILLING_ALLOW_PRODUCTION', default=False, cast=bool)
+BILLING_NETWORK_ENABLED = config('BILLING_NETWORK_ENABLED', default=True, cast=bool)
+BILLING_ARCHIVE_ROOT = config('BILLING_ARCHIVE_ROOT', default=str(Path.home() / '.local' / 'share' / 'devlink' / 'invoices'))

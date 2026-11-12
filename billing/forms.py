@@ -58,3 +58,88 @@ class InvoiceForm(forms.ModelForm):
 
 LineFormSet = inlineformset_factory(Invoice, InvoiceLine, fields=['description', 'quantity', 'unit_price'],
     extra=1, min_num=1, validate_min=True, max_num=50, validate_max=True, absolute_max=50, can_delete=True)
+
+
+class CancellationSelectionForm(forms.Form):
+    customer = forms.ModelChoiceField(label='Cliente', queryset=Customer.objects.none())
+    invoices = forms.ModelMultipleChoiceField(
+        label='Facturas a anular totalmente',
+        queryset=Invoice.objects.none(),
+        widget=forms.CheckboxSelectMultiple,
+    )
+    reason = forms.CharField(
+        label='Motivo de la anulación',
+        max_length=500,
+        widget=forms.Textarea(attrs={'rows': 3}),
+    )
+
+    def __init__(self, *args, customer=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['customer'].queryset = Customer.objects.order_by('name')
+        if customer is None and self.is_bound:
+            raw_customer = self.data.get(self.add_prefix('customer'))
+            try:
+                customer = Customer.objects.filter(pk=raw_customer).first()
+            except (TypeError, ValueError):
+                customer = None
+        self.customer = customer
+        if customer:
+            self.fields['customer'].initial = customer
+            self.fields['invoices'].queryset = Invoice.objects.filter(
+                customer=customer,
+                document_type=11,
+                status='authorized',
+            ).order_by('-issue_date', '-created_at')
+
+    def clean(self):
+        cleaned = super().clean()
+        customer = cleaned.get('customer')
+        invoices = cleaned.get('invoices')
+        if self.customer and customer and customer.pk != self.customer.pk:
+            raise forms.ValidationError('El cliente seleccionado cambió. Volvé a cargar sus facturas.')
+        if invoices and customer and any(invoice.customer_id != customer.pk for invoice in invoices):
+            raise forms.ValidationError('Todas las facturas deben pertenecer al cliente seleccionado.')
+        return cleaned
+
+
+class PartialCancellationForm(forms.Form):
+    reason = forms.CharField(
+        label='Motivo de la anulación',
+        max_length=500,
+        widget=forms.Textarea(attrs={'rows': 3}),
+    )
+    confirm_imported = forms.BooleanField(
+        label='Comparé los renglones con el PDF original y coinciden.',
+        required=False,
+    )
+
+    def __init__(self, *args, summary, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.summary = summary
+        self.line_fields = []
+        if summary.invoice.source != 'import':
+            self.fields.pop('confirm_imported')
+        for item in summary.lines:
+            name = f'line_{item.line.pk}'
+            self.fields[name] = forms.DecimalField(
+                label=item.line.description,
+                required=False,
+                min_value=0,
+                max_value=item.available_quantity,
+                max_digits=12,
+                decimal_places=3,
+                initial=0,
+                widget=forms.NumberInput(attrs={'step': '0.001', 'inputmode': 'decimal'}),
+            )
+            self.line_fields.append((name, item))
+
+    def clean(self):
+        cleaned = super().clean()
+        if self.summary.invoice.source == 'import' and not cleaned.get('confirm_imported'):
+            self.add_error('confirm_imported', 'Esta confirmación es obligatoria para facturas importadas.')
+        if not any((cleaned.get(name) or 0) > 0 for name, _ in self.line_fields):
+            raise forms.ValidationError('Ingresá una cantidad mayor a cero en al menos un renglón.')
+        return cleaned
+
+    def quantities(self):
+        return {item.line.pk: self.cleaned_data.get(name) or 0 for name, item in self.line_fields}

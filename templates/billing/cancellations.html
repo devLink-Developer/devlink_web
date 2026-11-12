@@ -1,0 +1,24 @@
+{% extends 'billing/base.html' %}
+{% block title %}Anulaciones · devLink{% endblock %}
+{% block content %}
+<div class="page-heading"><div><h1>Anulaciones</h1><p>Prepará notas de crédito vinculadas a las facturas del cliente.</p></div></div>
+<section class="surface form-section">
+  <form method="get" class="filters">
+    <div><label for="customer-filter">Cliente</label><select id="customer-filter" name="customer"><option value="">Seleccionar cliente</option>{% for customer in customers %}<option value="{{ customer.pk }}"{% if selected_customer.pk == customer.pk %} selected{% endif %}>{{ customer }}</option>{% endfor %}</select></div>
+    <button class="button" type="submit">Ver facturas</button>
+  </form>
+</section>
+{% if selected_customer %}
+<form method="post" class="stack">{% csrf_token %}
+  <input type="hidden" name="customer" value="{{ selected_customer.pk }}">
+  {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
+  <section class="surface form-section">
+    <h2>Facturas de {{ selected_customer.name }}</h2>
+    {% for item in summaries %}<label><input type="checkbox" name="invoices" value="{{ item.invoice.pk }}"{% if item.state == 'cancelled' or item.state == 'pending' or item.state == 'draft' %} disabled{% endif %}> {{ item.invoice.fiscal_number }} · {{ item.state_label }} · $ {{ item.available_amount|floatformat:2 }}</label>{% empty %}<p>No hay facturas autorizadas para este cliente.</p>{% endfor %}
+    {{ form.invoices.errors }}
+  </section>
+  <section class="surface form-section">{{ form.reason.label_tag }}{{ form.reason }}{{ form.reason.errors }}</section>
+  <div class="form-actions"><button class="button primary" type="submit">Preparar anulación total</button></div>
+</form>
+{% endif %}
+{% endblock %}

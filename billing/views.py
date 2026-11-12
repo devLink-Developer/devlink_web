@@ -10,12 +10,14 @@ from django.db import transaction
 from django.db.models import Max, Q, Sum
 from django.http import HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
-from django.utils import timezone
+from django.urls import reverse
 from django.views.decorators.http import require_http_methods, require_POST
 
 from .arca import ArcaClient, certificate_material
-from .forms import ConfigurationForm, CustomerForm, InvoiceForm, IssuerForm, LineFormSet
-from .models import ArcaConfiguration, Customer, Invoice, InvoiceLine, Issuer
+from .credits import credit_summary, discard_credit_draft, prepare_partial_credit, prepare_total_credits
+from .forms import (CancellationSelectionForm, ConfigurationForm, CustomerForm, InvoiceForm,
+    IssuerForm, LineFormSet, PartialCancellationForm)
+from .models import ArcaConfiguration, Customer, Invoice, Issuer
 from .services import issue_invoice, reconcile_invoice
 from .validation import validate_invoice
 from .locks import configuration_operation
@@ -139,6 +141,84 @@ def customers(request):
 
 @admin_only
 @require_http_methods(['GET', 'POST'])
+def cancellations(request):
+    selected_customer = None
+    if request.method == 'GET':
+        try:
+            selected_customer = Customer.objects.filter(pk=request.GET.get('customer')).first()
+        except (TypeError, ValueError):
+            selected_customer = None
+    form = CancellationSelectionForm(request.POST or None, customer=selected_customer)
+    if request.method == 'POST' and form.is_valid():
+        selected_customer = form.cleaned_data['customer']
+        try:
+            notes = prepare_total_credits(
+                selected_customer.pk,
+                [invoice.pk for invoice in form.cleaned_data['invoices']],
+                form.cleaned_data['reason'],
+                request.user,
+            )
+            if len(notes) == 1:
+                messages.success(request, 'La nota de crédito quedó preparada para revisión. Todavía no se envió a ARCA.')
+                return redirect('billing:detail', invoice_id=notes[0].pk)
+            messages.success(request, f'Se prepararon {len(notes)} notas de crédito. Todavía no se enviaron a ARCA.')
+            return redirect(f'{request.path}?customer={selected_customer.pk}')
+        except ValidationError as exc:
+            form.add_error(None, ' '.join(exc.messages))
+    elif request.method == 'POST':
+        selected_customer = form.customer
+
+    summaries = []
+    if selected_customer:
+        invoices = (Invoice.objects.filter(customer=selected_customer, document_type=11, status='authorized')
+            .select_related('customer', 'configuration').prefetch_related('lines', 'credit_notes__lines')
+            .order_by('-issue_date', '-created_at'))
+        summaries = [credit_summary(invoice) for invoice in invoices]
+    return render(request, 'billing/cancellations.html', {
+        'form': form,
+        'customers': Customer.objects.order_by('name'),
+        'selected_customer': selected_customer,
+        'summaries': summaries,
+        'selected_invoice': request.GET.get('invoice', ''),
+    })
+
+
+@admin_only
+@require_http_methods(['GET', 'POST'])
+def cancellation_partial(request, invoice_id):
+    original = get_object_or_404(
+        Invoice.objects.select_related('customer', 'configuration').prefetch_related('lines'),
+        pk=invoice_id,
+        document_type=11,
+        status='authorized',
+    )
+    summary = credit_summary(original)
+    if summary.existing_editable_note:
+        messages.info(request, 'Esta factura ya tiene una nota de crédito en preparación.')
+        return redirect('billing:detail', invoice_id=summary.existing_editable_note.pk)
+    form = PartialCancellationForm(request.POST or None, summary=summary)
+    if request.method == 'POST' and form.is_valid():
+        try:
+            note = prepare_partial_credit(
+                original.pk,
+                form.quantities(),
+                form.cleaned_data['reason'],
+                request.user,
+                imported_lines_confirmed=form.cleaned_data.get('confirm_imported', False),
+            )
+            messages.success(request, 'La nota de crédito quedó preparada para revisión. Todavía no se envió a ARCA.')
+            return redirect('billing:detail', invoice_id=note.pk)
+        except ValidationError as exc:
+            form.add_error(None, ' '.join(exc.messages))
+    return render(request, 'billing/cancellation_partial.html', {
+        'form': form,
+        'summary': summary,
+        'invoice': original,
+    })
+
+
+@admin_only
+@require_http_methods(['GET', 'POST'])
 def customer_form(request, customer_id=None):
     customer = get_object_or_404(Customer, pk=customer_id) if customer_id else Customer()
     form = CustomerForm(request.POST or None, instance=customer)
@@ -217,16 +297,26 @@ def reconcile(request, invoice_id):
 @admin_only
 @require_POST
 def credit_note(request, invoice_id):
-    with transaction.atomic():
-        original = get_object_or_404(Invoice.objects.select_for_update(), pk=invoice_id, document_type=11, status='authorized')
-        note = Invoice.objects.create(configuration=original.configuration, customer=original.customer,
-            original=original, document_type=13, concept=original.concept, created_by=request.user,
-            issue_date=timezone.localdate(), service_from=original.service_from, service_to=original.service_to,
-            due_date=timezone.localdate() if original.concept in (2, 3) else None, total=original.total)
-        for line in original.lines.all():
-            InvoiceLine.objects.create(invoice=note, description=line.description, quantity=line.quantity, unit_price=line.unit_price)
-    messages.info(request, 'Revisá el importe de la nota de crédito antes de emitirla.')
-    return redirect('billing:edit', invoice_id=note.pk)
+    original = get_object_or_404(Invoice.objects.prefetch_related('lines'), pk=invoice_id,
+        document_type=11, status='authorized')
+    summary = credit_summary(original)
+    if summary.existing_editable_note:
+        messages.info(request, 'Esta factura ya tiene una nota de crédito en preparación.')
+        return redirect('billing:detail', invoice_id=summary.existing_editable_note.pk)
+    return redirect('billing:cancellation_partial', invoice_id=original.pk)
+
+
+@admin_only
+@require_POST
+def credit_discard(request, invoice_id):
+    note = get_object_or_404(Invoice, pk=invoice_id, document_type=13)
+    customer_id = note.customer_id
+    try:
+        discard_credit_draft(note.pk, request.user)
+        messages.success(request, 'El borrador de nota de crédito fue descartado.')
+    except ValidationError as exc:
+        messages.error(request, ' '.join(exc.messages))
+    return redirect(f"{reverse('billing:cancellations')}?customer={customer_id}")
 
 
 @admin_only

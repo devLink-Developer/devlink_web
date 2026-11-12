@@ -1,0 +1,13 @@
+{% extends 'billing/base.html' %}
+{% block title %}Anulación parcial · devLink{% endblock %}
+{% block content %}
+<div class="page-heading"><div><h1>Anulación parcial</h1><p>Factura C {{ invoice.fiscal_number }} · {{ invoice.customer.name }}</p></div></div>
+<form method="post" class="stack">{% csrf_token %}
+  {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
+  <section class="surface form-section">
+    <h2>Cantidades a anular</h2>
+    {% for field in form %}<div class="field">{{ field.label_tag }}{{ field }}{{ field.errors }}{% if field.name|slice:':5' == 'line_' %}<p class="field-help">Usá una cantidad de hasta el saldo disponible.</p>{% endif %}</div>{% endfor %}
+  </section>
+  <div class="form-actions"><button class="button primary" type="submit">Preparar nota de crédito</button><a href="{% url 'billing:cancellations' %}?customer={{ invoice.customer_id }}">Cancelar</a></div>
+</form>
+{% endblock %}

@@ -122,7 +122,7 @@ class PartialCancellationForm(forms.Form):
         for item in summary.lines:
             name = f'line_{item.line.pk}'
             self.fields[name] = forms.DecimalField(
-                label=item.line.description,
+                label='Cantidad a anular',
                 required=False,
                 min_value=0,
                 max_value=item.available_quantity,

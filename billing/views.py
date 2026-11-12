@@ -214,6 +214,7 @@ def cancellation_partial(request, invoice_id):
         'form': form,
         'summary': summary,
         'invoice': original,
+        'partial_rows': [{'field': form[name], 'summary': item} for name, item in form.line_fields],
     })
 
 
@@ -234,6 +235,8 @@ def customer_form(request, customer_id=None):
 def invoice_form(request, invoice_id=None):
     with transaction.atomic():
         invoice = get_object_or_404(Invoice.objects.select_for_update(), pk=invoice_id) if invoice_id else Invoice(created_by=request.user)
+        if invoice.original_id:
+            return HttpResponse('Las notas de crédito se administran desde el centro de anulaciones.', status=409)
         if not invoice.editable:
             return HttpResponse('Este comprobante es inmutable.', status=409)
         form = InvoiceForm(request.POST or None, instance=invoice)
@@ -260,11 +263,18 @@ def invoice_form(request, invoice_id=None):
 
 @admin_only
 def detail(request, invoice_id):
-    invoice = get_object_or_404(Invoice.objects.select_related('customer', 'configuration', 'original'), pk=invoice_id)
+    invoice = get_object_or_404(Invoice.objects.select_related('customer', 'configuration', 'original')
+        .prefetch_related('lines', 'credit_notes__lines'), pk=invoice_id)
+    cancellation_summary = None
+    related_credit_notes = []
+    if invoice.document_type == 11 and invoice.status == 'authorized':
+        cancellation_summary = credit_summary(invoice)
+        related_credit_notes = invoice.credit_notes.select_related('created_by').order_by('-created_at')
     return render(request, 'billing/detail.html', {'invoice': invoice, 'attempts': invoice.attempts.all()[:30],
         'issuer': invoice.configuration.issuer if invoice.editable else invoice.issuer_snapshot,
         'receiver': invoice.customer if invoice.editable else invoice.customer_snapshot,
-        'display_point_of_sale': invoice.configuration.point_of_sale if invoice.editable else invoice.point_of_sale})
+        'display_point_of_sale': invoice.configuration.point_of_sale if invoice.editable else invoice.point_of_sale,
+        'cancellation_summary': cancellation_summary, 'related_credit_notes': related_credit_notes})
 
 
 @admin_only

@@ -50,6 +50,7 @@ class BillingViewsTests(TestCase):
         self.client.force_login(self.user)
         response = self.client.get(reverse('billing:dashboard'))
         self.assertContains(response, 'Facturación')
+        self.assertContains(response, 'Anulaciones')
         detail = self.client.get(reverse('billing:detail', args=[self.invoice.pk]))
         self.assertContains(detail, '&lt;script&gt;hola&lt;/script&gt;')
         self.assertNotContains(detail, '<script>hola</script>')
@@ -137,6 +138,8 @@ class BillingViewsTests(TestCase):
         summaries = response.context['summaries']
         self.assertEqual([item.invoice.pk for item in summaries], [self.invoice.pk])
         self.assertEqual(summaries[0].state, 'cancelled')
+        self.assertContains(response, 'Anulada totalmente')
+        self.assertContains(response, f'value="{self.invoice.pk}" disabled', html=False)
 
     def test_total_cancellation_post_creates_one_draft_per_selected_invoice(self):
         self.authorize()
@@ -219,3 +222,40 @@ class BillingViewsTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertFalse(Invoice.objects.filter(document_type=13).exists())
+
+    def test_cancellation_workspace_shows_balances_and_continue_existing_draft(self):
+        self.authorize()
+        line = self.invoice.lines.get()
+        draft = prepare_partial_credit(self.invoice.pk, {line.pk: '0.250'}, 'Ajuste en preparación.', self.user)
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse('billing:cancellations'), {'customer': self.customer.pk})
+
+        self.assertContains(response, 'Anulación en preparación')
+        self.assertContains(response, '$ 100,00')
+        self.assertContains(response, reverse('billing:detail', args=[draft.pk]))
+        self.assertContains(response, 'Continuar borrador')
+
+    def test_detail_shows_cancellation_reason_and_related_credit_notes(self):
+        self.authorize()
+        line = self.invoice.lines.get()
+        note = prepare_partial_credit(self.invoice.pk, {line.pk: '0.500'}, 'Bonificación acordada con el cliente.', self.user)
+        self.client.force_login(self.user)
+
+        note_detail = self.client.get(reverse('billing:detail', args=[note.pk]))
+        self.assertContains(note_detail, 'Anulación parcial')
+        self.assertContains(note_detail, 'Bonificación acordada con el cliente.')
+
+        original_detail = self.client.get(reverse('billing:detail', args=[self.invoice.pk]))
+        self.assertContains(original_detail, 'Notas de crédito asociadas')
+        self.assertContains(original_detail, 'Bonificación acordada con el cliente.')
+        self.assertContains(original_detail, reverse('billing:detail', args=[note.pk]))
+
+    def test_credit_note_cannot_be_edited_with_generic_invoice_form(self):
+        self.authorize()
+        note = prepare_total_credits(self.customer.pk, [self.invoice.pk], 'Anulación total.', self.user)[0]
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse('billing:edit', args=[note.pk]))
+
+        self.assertEqual(response.status_code, 409)

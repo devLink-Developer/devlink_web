@@ -1,13 +1,18 @@
-{% extends 'billing/base.html' %}
-{% block title %}Anulación parcial · devLink{% endblock %}
-{% block content %}
-<div class="page-heading"><div><h1>Anulación parcial</h1><p>Factura C {{ invoice.fiscal_number }} · {{ invoice.customer.name }}</p></div></div>
-<form method="post" class="stack">{% csrf_token %}
-  {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
-  <section class="surface form-section">
-    <h2>Cantidades a anular</h2>
-    {% for field in form %}<div class="field">{{ field.label_tag }}{{ field }}{{ field.errors }}{% if field.name|slice:':5' == 'line_' %}<p class="field-help">Usá una cantidad de hasta el saldo disponible.</p>{% endif %}</div>{% endfor %}
+{% extends 'billing/base.html' %}{% load static %}
+{% block billing_title %}Anulación parcial{% endblock %}
+{% block billing_content %}
+<div class="page-heading"><div><p class="page-kicker">Nota de Crédito C</p><h1>Anulación parcial</h1><p>Factura {{ invoice.fiscal_number }} · {{ invoice.customer.name }}</p></div><a href="{% url 'billing:detail' invoice.pk %}">Ver factura original</a></div>
+{% if invoice.source == 'import' %}<div class="notice warning"><strong>Verificación manual necesaria.</strong> Esta factura fue incorporada desde un PDF. Compará cada renglón con el comprobante original antes de continuar; el saldo se calcula con el historial registrado en devLink.</div>{% endif %}
+{% if summary.partial_block_reason %}<div class="notice error" role="alert">{{ summary.partial_block_reason }}</div>{% endif %}
+<dl class="billing-summary cancellation-summary"><div><dt>Total original</dt><dd>$ {{ summary.original_total|floatformat:2 }}</dd><small>Factura autorizada</small></div><div><dt>Ya anulado</dt><dd>$ {{ summary.authorized_amount|floatformat:2 }}</dd><small>Notas autorizadas</small></div><div><dt>Saldo disponible</dt><dd>$ {{ summary.available_amount|floatformat:2 }}</dd><small>Máximo acreditable</small></div></dl>
+<form method="post" class="stack" data-partial-form>{% csrf_token %}
+  {% if form.non_field_errors %}<div class="notice error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+  <section class="surface partial-lines" aria-labelledby="partial-lines-title">
+    <div class="cancellation-list-header"><div><p class="step-label">Paso 1</p><h2 id="partial-lines-title">Indicá las cantidades</h2></div><p>Total estimado: <strong data-partial-total>$ 0,00</strong></p></div>
+    {% for row in partial_rows %}<div class="partial-line" data-partial-row data-unit-price="{{ row.summary.line.unit_price }}"><div><strong>{{ row.summary.line.description }}</strong><small>Precio unitario: $ {{ row.summary.line.unit_price|floatformat:4 }}</small></div><dl><div><dt>Original</dt><dd>{{ row.summary.original_quantity|floatformat:3 }}</dd></div><div><dt>Ya anulado</dt><dd>{{ row.summary.authorized_quantity|floatformat:3 }}</dd></div><div><dt>Disponible</dt><dd>{{ row.summary.available_quantity|floatformat:3 }}</dd></div></dl><div class="partial-input">{{ row.field.label_tag }}{{ row.field }}{{ row.field.errors }}</div></div>{% endfor %}
   </section>
-  <div class="form-actions"><button class="button primary" type="submit">Preparar nota de crédito</button><a href="{% url 'billing:cancellations' %}?customer={{ invoice.customer_id }}">Cancelar</a></div>
+  <section class="surface form-section"><p class="step-label">Paso 2</p><h2>Explicá el motivo</h2><p class="section-intro">Este texto queda asociado a la nota de crédito para facilitar la auditoría.</p>{{ form.reason.label_tag }}{{ form.reason }}{{ form.reason.errors }}{% if form.confirm_imported %}<label class="checkbox-label imported-confirmation">{{ form.confirm_imported }} <span>{{ form.confirm_imported.label }}</span></label>{{ form.confirm_imported.errors }}{% endif %}</section>
+  <div class="form-actions cancellation-submit"><button class="button primary" type="submit">Preparar nota de crédito</button><a href="{% url 'billing:cancellations' %}?customer={{ invoice.customer_id }}">Cancelar</a><p>No se enviará nada a ARCA en este paso.</p></div>
 </form>
 {% endblock %}
+{% block billing_scripts %}<script src="{% static 'billing/billing.js' %}" defer></script>{% endblock %}

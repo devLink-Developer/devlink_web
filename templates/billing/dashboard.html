@@ -1,6 +1,6 @@
 {% extends 'billing/base.html' %}
 {% block billing_content %}
-<div class="page-heading"><div><h1>Facturación</h1><p>Prepará tus comprobantes y seguí su autorización en ARCA.</p></div><a class="button primary" href="{% url 'billing:new' %}">Nueva factura</a></div>
+<div class="page-heading"><div><h1>Facturación</h1><p>Prepará tus comprobantes y seguí su autorización en ARCA.</p></div><div class="heading-actions"><a class="button" href="{% url 'billing:cancellations' %}">Gestionar anulaciones</a><a class="button primary" href="{% url 'billing:new' %}">Nueva factura</a></div></div>
 {% if sequence_hint %}<p class="notice">Próxima Factura C de esta serie: <strong>{{ sequence_hint }}</strong>. Se confirmará con la numeración de ARCA al emitir.</p>{% endif %}
 {% if not configured %}<div class="notice"><strong>Configurá el emisor para empezar.</strong> Completá tus datos fiscales, el certificado y el punto de venta en <a href="{% url 'billing:settings' %}">Configuración fiscal</a>.</div>{% endif %}
 <dl class="billing-summary"><div><dt>Facturación neta · producción</dt><dd>$ {{ net_total|floatformat:2 }}</dd><small>Facturas autorizadas menos notas de crédito</small></div><div><dt>Borradores y corregibles</dt><dd>{{ draft_count }}</dd><small>Pendientes de emisión</small></div><div><dt>Requieren conciliación</dt><dd>{{ pending_count }}</dd><small>Resultado aún sin confirmar</small></div></dl>

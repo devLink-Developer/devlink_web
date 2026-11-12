@@ -123,3 +123,33 @@ class AdminNavigationTests(TestCase):
 
         self.assertIn('href="/"', rendered)
         self.assertIn("Ver sitio", rendered)
+
+
+class BrandAssetTests(SimpleTestCase):
+    public_templates = (
+        "index.html",
+        "accounts/login.html",
+        "documentacion.html",
+        "aviso-iluminacion.html",
+        "politicas-privacidad.html",
+        "terminos-servicio.html",
+        "billing/base.html",
+    )
+
+    def test_public_pages_serve_brand_assets_from_devlink(self):
+        for template_name in self.public_templates:
+            with self.subTest(template=template_name):
+                rendered = render_to_string(template_name)
+                self.assertNotIn("ss-static-001.esmsv.com", rendered)
+                self.assertIn(
+                    'href="/static/images/devlink-logo-email.png"',
+                    rendered,
+                )
+
+    def test_marketing_page_uses_the_local_logo_in_header_and_footer(self):
+        rendered = render_to_string("index.html")
+
+        self.assertEqual(
+            rendered.count('src="/static/images/devlink-logo-email.png"'),
+            2,
+        )

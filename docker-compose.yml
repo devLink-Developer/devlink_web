@@ -23,9 +23,11 @@ services:
       - DB_PASSWORD=devlink_pass
       - DB_HOST=db
       - DB_PORT=5432
+      - BILLING_ARCHIVE_ROOT=/home/appuser/.local/share/devlink/invoices
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
+      - billing_archive:/home/appuser/.local/share/devlink/invoices
     depends_on:
       - db
     networks:
@@ -45,6 +47,7 @@ volumes:
   postgres_data:
   static_volume:
   media_volume:
+  billing_archive:
 
 networks:
   devlink_network:

@@ -3,7 +3,7 @@ from decimal import Decimal
 from unittest.mock import patch
 from unittest import skipUnless
 from concurrent.futures import ThreadPoolExecutor
-from threading import Event
+from threading import Barrier, Event
 
 from django.core.exceptions import ValidationError
 from django.test import TransactionTestCase
@@ -13,6 +13,7 @@ from django.utils import timezone
 from datetime import timedelta
 
 from billing.models import ArcaConfiguration, Customer, Invoice, InvoiceLine, Issuer
+from billing.credits import prepare_total_credits
 from billing.services import _credit_balance, issue_invoice, reconcile_invoice
 
 
@@ -224,11 +225,10 @@ class IssuanceTests(TransactionTestCase):
         self.assertEqual(len(FakeArca.calls), 1)
 
     @skipUnless(connection.vendor == 'postgresql', 'Requires PostgreSQL row locks')
-    def test_concurrent_credit_note_reserves_balance_before_network_completes(self):
+    def test_concurrent_partial_credit_reserves_balance_before_total_credit_can_issue(self):
         issue_invoice(self.invoice.pk, self.user)
         self.invoice.refresh_from_db()
         note = self.make_invoice('70.00', document_type=13, original=self.invoice)
-        another = self.make_invoice('40.00', document_type=13, original=self.invoice)
         started, release = Event(), Event()
 
         def slow_authorize(client, payload):
@@ -247,12 +247,42 @@ class IssuanceTests(TransactionTestCase):
             future = pool.submit(first_note)
             try:
                 self.assertTrue(started.wait(15))
+                another = Invoice.objects.create(configuration=self.config, customer=self.customer,
+                    original=self.invoice, document_type=13, cancellation_kind='total',
+                    cancellation_reason='Anulación total concurrente', issue_date=date.today(), concept=1,
+                    created_by=self.user)
+                InvoiceLine.objects.create(invoice=another, description='Anulación total concurrente',
+                    quantity=1, unit_price='30.00')
+                Invoice.objects.filter(pk=another.pk).update(total='30.00')
                 with self.assertRaises(ValidationError):
                     issue_invoice(another.pk, self.user)
             finally:
                 release.set()
             self.assertEqual(future.result(timeout=20), 'unknown')
         self.assertEqual(len(FakeArca.calls), 2)
+
+    @skipUnless(connection.vendor == 'postgresql', 'Requires PostgreSQL row locks')
+    def test_concurrent_total_draft_preparation_creates_only_one_editable_note(self):
+        issue_invoice(self.invoice.pk, self.user)
+        self.invoice.refresh_from_db()
+        barrier = Barrier(2)
+
+        def prepare():
+            try:
+                connections.close_all()
+                barrier.wait(timeout=15)
+                prepare_total_credits(self.customer.pk, [self.invoice.pk], 'Solicitud concurrente.', self.user)
+                return 'created'
+            except ValidationError:
+                return 'blocked'
+            finally:
+                connections.close_all()
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results = sorted(future.result(timeout=20) for future in [pool.submit(prepare), pool.submit(prepare)])
+
+        self.assertEqual(results, ['blocked', 'created'])
+        self.assertEqual(self.invoice.credit_notes.filter(status__in=('draft', 'rejected')).count(), 1)
 
     @skipUnless(connection.vendor == 'postgresql', 'Requires PostgreSQL operation locks')
     def test_active_suspended_sender_cannot_be_reconciled_as_not_found(self):

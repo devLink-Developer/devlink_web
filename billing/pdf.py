@@ -56,7 +56,12 @@ def invoice_pdf(invoice):
         story.extend([p(f'Período del servicio: {invoice.service_from:%d/%m/%Y} al {invoice.service_to:%d/%m/%Y}'),
             p(f'Vencimiento de pago: {invoice.due_date:%d/%m/%Y}'), Spacer(1, 5*mm)])
     if invoice.original_id:
-        story.extend([p(f'Comprobante asociado: Factura C {invoice.original.fiscal_number}'), Spacer(1, 4*mm)])
+        story.append(p(f'Comprobante asociado: Factura C {invoice.original.fiscal_number}'))
+        if invoice.cancellation_kind:
+            story.append(p(f'Alcance: {invoice.get_cancellation_kind_display()}'))
+        if invoice.cancellation_reason.strip():
+            story.append(p(f'Motivo: {invoice.cancellation_reason}'))
+        story.append(Spacer(1, 4*mm))
     rows = [[p('Descripción'), p('Cantidad'), p('Precio unitario'), p('Subtotal')]]
     for line in invoice.lines.all():
         rows.append([p(line.description), p(f'{line.quantity:f}'), p(f'$ {line.unit_price:,.4f}'), p(f'$ {line.amount:,.2f}')])

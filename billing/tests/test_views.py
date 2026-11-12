@@ -26,7 +26,8 @@ class BillingViewsTests(TestCase):
         total = sum((line.amount for line in invoice.lines.all()), 0)
         Invoice.objects.filter(pk=invoice.pk).update(status='authorized', number=number, point_of_sale=7,
             environment='HOMO', cae='12345678901234', cae_due=date(2030, 1, 1), total=total, source=source,
-            issuer_snapshot={'name': 'Emisor', 'cuit': self.issuer.cuit},
+            issuer_snapshot={'name': 'Emisor', 'cuit': self.issuer.cuit, 'address': self.issuer.address,
+                'gross_income': self.issuer.gross_income, 'activities_since': self.issuer.activities_since.isoformat()},
             customer_snapshot={'name': invoice.customer.name, 'document_type': invoice.customer.document_type,
                 'document_number': invoice.customer.document_number, 'vat_condition': invoice.customer.vat_condition,
                 'address': invoice.customer.address})
@@ -259,3 +260,27 @@ class BillingViewsTests(TestCase):
         response = self.client.get(reverse('billing:edit', args=[note.pk]))
 
         self.assertEqual(response.status_code, 409)
+
+    def test_credit_note_pdf_includes_auditable_cancellation_evidence(self):
+        from io import BytesIO
+        from pypdf import PdfReader
+        self.authorize()
+        line = self.invoice.lines.get()
+        note = prepare_partial_credit(
+            self.invoice.pk,
+            {line.pk: '0.500'},
+            'Bonificación por <error> & ajuste acordado.',
+            self.user,
+        )
+        Invoice.objects.filter(pk=note.pk).update(status='authorized', number=1, point_of_sale=7,
+            environment='HOMO', cae='22345678901234', cae_due=date(2030, 1, 1),
+            issuer_snapshot=self.invoice.issuer_snapshot, customer_snapshot=self.invoice.customer_snapshot)
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse('billing:pdf', args=[note.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        text = ''.join(page.extract_text() for page in PdfReader(BytesIO(response.content)).pages)
+        self.assertIn(f'Factura C {self.invoice.fiscal_number}', text)
+        self.assertIn('parcial', text)
+        self.assertIn('por <error> & ajuste acordado.', text)

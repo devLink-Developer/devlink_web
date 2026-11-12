@@ -17,6 +17,33 @@ from billing.models import ArcaConfiguration, Issuer
 
 
 class ArcaBoundaryTests(SimpleTestCase):
+    @override_settings(BILLING_NETWORK_ENABLED=True)
+    def test_transport_uses_an_ecdhe_only_context_for_arca_tls(self):
+        class Response:
+            status_code = 200
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def iter_content(self, _size):
+                return [b'<root/>']
+
+        session = requests.Session()
+        session.post = lambda *args, **kwargs: Response()
+        config = ArcaConfiguration(environment='HOMO')
+
+        with patch('billing.arca.requests.Session', return_value=session):
+            ArcaClient(config).status()
+
+        context = session.adapters['https://'].poolmanager.connection_pool_kw.get('ssl_context')
+        self.assertIsNotNone(context)
+        tls12_ciphers = {cipher['name'] for cipher in context.get_ciphers() if cipher['protocol'] != 'TLSv1.3'}
+        self.assertTrue(tls12_ciphers)
+        self.assertTrue(all(name.startswith('ECDHE-RSA-') for name in tls12_ciphers))
+
     @override_settings(BILLING_NETWORK_ENABLED=True, SECRET_KEY='your-super-secret-key-change-this')
     def test_real_wsaa_credentials_are_not_cached_with_a_placeholder_server_secret(self):
         with self.assertRaises(ValidationError) as caught:

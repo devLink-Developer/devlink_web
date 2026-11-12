@@ -4,11 +4,13 @@ import hashlib
 import json
 import os
 import re
+import ssl
 from datetime import datetime, timedelta, timezone as dt_timezone
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
 import requests
+from requests.adapters import HTTPAdapter
 from cryptography import x509
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes, serialization
@@ -27,6 +29,16 @@ SOAP = 'http://schemas.xmlsoap.org/soap/envelope/'
 WSFE = 'http://ar.gov.afip.dif.FEV1/'
 WSAA = 'http://wsaa.view.sua.dvadac.desein.afip.gov'
 MAX_RESPONSE = 2 * 1024 * 1024
+ARCA_TLS_CIPHERS = 'ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256'
+
+
+class ArcaTLSAdapter(HTTPAdapter):
+    def init_poolmanager(self, *args, **kwargs):
+        context = ssl.create_default_context()
+        context.minimum_version = ssl.TLSVersion.TLSv1_2
+        context.set_ciphers(ARCA_TLS_CIPHERS)
+        kwargs['ssl_context'] = context
+        return super().init_poolmanager(*args, **kwargs)
 
 
 def private_file(name):
@@ -203,6 +215,7 @@ class ArcaClient:
         # Explicitly disable retries, redirections, netrc credentials and proxy discovery.
         with requests.Session() as session:
             session.trust_env = False
+            session.mount('https://', ArcaTLSAdapter())
             with session.post(url, data=ET.tostring(envelope, encoding='utf-8', xml_declaration=True),
                     headers={'Content-Type': 'text/xml; charset=utf-8', 'SOAPAction': '""' if namespace == WSAA else f'"{namespace}{method}"'},
                     timeout=(5, self.config.timeout), allow_redirects=False, stream=True) as response:

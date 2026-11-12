@@ -153,3 +153,12 @@ class BrandAssetTests(SimpleTestCase):
             rendered.count('src="/static/images/devlink-logo-email.png"'),
             2,
         )
+
+
+class SocialLinkTests(SimpleTestCase):
+    def test_public_instagram_links_use_the_official_devlink_profile(self):
+        for template_name in ("index.html", "documentacion.html", "accounts/login.html"):
+            with self.subTest(template=template_name):
+                rendered = render_to_string(template_name)
+                self.assertIn('href="https://www.instagram.com/_devlink_/"', rendered)
+                self.assertNotIn('instagram.com/devlink.com.ar', rendered)

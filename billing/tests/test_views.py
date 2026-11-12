@@ -56,6 +56,21 @@ class BillingViewsTests(TestCase):
         self.assertContains(detail, '&lt;script&gt;hola&lt;/script&gt;')
         self.assertNotContains(detail, '<script>hola</script>')
 
+    def test_billing_reuses_the_admin_panel_shell_and_navigation(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse('billing:dashboard'))
+
+        self.assertContains(response, 'class="admin-shell page-shell billing-shell"')
+        self.assertContains(response, 'class="admin-toolbar"')
+        self.assertContains(response, 'class="admin-content billing-content"')
+        self.assertContains(response, f'href="{reverse("home")}"')
+        self.assertContains(response, f'href="{reverse("admin_panel:dashboard")}"')
+        self.assertContains(response, f'href="{reverse("billing:dashboard")}"')
+        self.assertContains(response, 'aria-current="page"')
+        self.assertContains(response, f'href="{reverse("logout")}"')
+        self.assertNotContains(response, 'class="billing-header"')
+
     def test_draft_does_not_have_fiscal_pdf(self):
         self.client.force_login(self.user)
         response = self.client.get(reverse('billing:pdf', args=[self.invoice.pk]))

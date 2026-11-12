@@ -1,15 +1,15 @@
 {% extends 'billing/base.html' %}{% load static %}
 {% block billing_title %}Anulaciones{% endblock %}
 {% block billing_content %}
-<div class="page-heading">
-  <div><p class="page-kicker">Notas de crédito C</p><h1>Centro de anulaciones</h1><p>Elegí un cliente, revisá el saldo de sus facturas y prepará la anulación sin enviarla todavía a ARCA.</p></div>
+<div class="admin-page-heading">
+  <div><p class="page-kicker">Notas de crédito C</p><h2>Centro de anulaciones</h2><p>Elegí un cliente, revisá el saldo de sus facturas y prepará la anulación sin enviarla todavía a ARCA.</p></div>
 </div>
-<section class="surface customer-picker" aria-labelledby="customer-picker-title">
+<section class="panel billing-panel customer-picker" aria-labelledby="customer-picker-title">
   <div><h2 id="customer-picker-title">1. Seleccioná el cliente</h2><p>Mostramos todo su historial autorizado, incluidas las facturas ya anuladas.</p></div>
   <form method="get" class="customer-picker-form">
     <label class="sr-only" for="customer-filter">Cliente</label>
     <select id="customer-filter" name="customer" required><option value="">Seleccionar cliente</option>{% for customer in customers %}<option value="{{ customer.pk }}"{% if selected_customer.pk == customer.pk %} selected{% endif %}>{{ customer }}</option>{% endfor %}</select>
-    <button class="button" type="submit">Ver facturas</button>
+    <button class="button button--secondary" type="submit"><i class="fas fa-search" aria-hidden="true"></i> Ver facturas</button>
   </form>
 </section>
 {% if selected_customer %}
@@ -17,7 +17,7 @@
   <input type="hidden" name="customer" value="{{ selected_customer.pk }}">
   {% if form.non_field_errors %}<div class="notice error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
   {% if form.invoices.errors %}<div class="notice error" role="alert">{{ form.invoices.errors }}</div>{% endif %}
-  <section class="surface cancellation-list" aria-labelledby="invoice-list-title">
+  <section class="panel billing-panel cancellation-list" aria-labelledby="invoice-list-title">
     <div class="cancellation-list-header"><div><p class="step-label">Paso 2</p><h2 id="invoice-list-title">Facturas de {{ selected_customer.name }}</h2></div><p><strong data-selected-count>0</strong> seleccionadas · <strong data-selected-total>$ 0,00</strong></p></div>
     {% for item in summaries %}
     <article class="cancellation-row state-{{ item.state }}" data-cancellation-row data-available="{{ item.available_amount }}">
@@ -29,16 +29,16 @@
       <dl class="balance-grid"><div><dt>Original</dt><dd>$ {{ item.original_total|floatformat:2 }}</dd></div><div><dt>Ya autorizado</dt><dd>$ {{ item.authorized_amount|floatformat:2 }}</dd></div><div><dt>Pendiente</dt><dd>$ {{ item.reserved_amount|floatformat:2 }}</dd></div><div class="available"><dt>Disponible</dt><dd>$ {{ item.available_amount|floatformat:2 }}</dd></div></dl>
       <div class="cancellation-actions">
         <a href="{% url 'billing:detail' item.invoice.pk %}">Ver factura</a>
-        {% if item.existing_editable_note %}<a class="button compact" href="{% url 'billing:detail' item.existing_editable_note.pk %}">Continuar borrador</a>{% elif item.state != 'cancelled' and item.state != 'pending' %}<a class="button compact" href="{% url 'billing:cancellation_partial' item.invoice.pk %}">Anulación parcial</a>{% endif %}
+        {% if item.existing_editable_note %}<a class="button button--small button--secondary" href="{% url 'billing:detail' item.existing_editable_note.pk %}">Continuar borrador</a>{% elif item.state != 'cancelled' and item.state != 'pending' %}<a class="button button--small button--secondary" href="{% url 'billing:cancellation_partial' item.invoice.pk %}">Anulación parcial</a>{% endif %}
       </div>
     </article>
     {% empty %}<div class="empty-state"><h2>No hay facturas autorizadas</h2><p>Cuando el cliente tenga una Factura C autorizada, aparecerá aquí.</p></div>{% endfor %}
   </section>
   {% if summaries %}
-  <section class="surface form-section cancellation-reason" aria-labelledby="reason-title"><p class="step-label">Paso 3</p><h2 id="reason-title">Motivo común de la anulación total</h2><p class="section-intro">Se creará una Nota de Crédito C separada por cada factura seleccionada. Podrás revisarlas antes de emitir.</p>{{ form.reason.label_tag }}{{ form.reason }}{{ form.reason.errors }}</section>
-  <div class="form-actions cancellation-submit"><button class="button primary" type="submit" data-cancellation-submit>Preparar anulaciones totales</button><p>No se enviará nada a ARCA en este paso.</p></div>
+  <section class="panel billing-panel form-section cancellation-reason" aria-labelledby="reason-title"><p class="step-label">Paso 3</p><h2 id="reason-title">Motivo común de la anulación total</h2><p class="section-intro">Se creará una Nota de Crédito C separada por cada factura seleccionada. Podrás revisarlas antes de emitir.</p>{{ form.reason.label_tag }}{{ form.reason }}{{ form.reason.errors }}</section>
+  <div class="form-actions cancellation-submit"><button class="button button--primary" type="submit" data-cancellation-submit>Preparar anulaciones totales</button><p>No se enviará nada a ARCA en este paso.</p></div>
   {% endif %}
 </form>
-{% else %}<div class="empty-state surface"><h2>Comenzá seleccionando un cliente</h2><p>La separación por cliente evita asociar una nota de crédito al receptor equivocado.</p></div>{% endif %}
+{% else %}<div class="empty-state panel billing-panel"><h2>Comenzá seleccionando un cliente</h2><p>La separación por cliente evita asociar una nota de crédito al receptor equivocado.</p></div>{% endif %}
 {% endblock %}
 {% block billing_scripts %}<script src="{% static 'billing/billing.js' %}" defer></script>{% endblock %}

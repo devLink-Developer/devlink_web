@@ -1,5 +1,5 @@
 {% extends 'billing/base.html' %}
 {% block billing_content %}
-<div class="page-heading"><div><h1>{% if customer.pk %}Editar cliente fiscal{% else %}Nuevo cliente fiscal{% endif %}</h1><p>Completá la identificación y el domicilio del receptor. Los campos con * son obligatorios.</p></div></div>
-<form method="post" class="stack">{% csrf_token %}<section class="surface form-section">{% include 'billing/fields.html' %}</section><div class="form-actions"><button class="button primary">Guardar cliente</button><a href="{% url 'billing:customers' %}">Cancelar</a></div></form>
+<div class="admin-page-heading"><div><h2>{% if customer.pk %}Editar cliente fiscal{% else %}Nuevo cliente fiscal{% endif %}</h2><p>Completá la identificación y el domicilio del receptor. Los campos con * son obligatorios.</p></div></div>
+<form method="post" class="stack">{% csrf_token %}<section class="panel billing-panel form-section">{% include 'billing/fields.html' %}</section><div class="form-actions"><a class="button button--secondary" href="{% url 'billing:customers' %}">Cancelar</a><button class="button button--primary">Guardar cliente</button></div></form>
 {% endblock %}

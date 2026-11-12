@@ -2,23 +2,29 @@
 {% block title %}{% block billing_title %}Facturación{% endblock %} · devLink{% endblock %}
 {% block content %}
 <link rel="stylesheet" href="{% static 'billing/billing.css' %}">
-<div class="billing-shell">
+<div class="admin-shell page-shell billing-shell">
   <a class="skip-link" href="#billing-main">Ir al contenido</a>
-  <header class="billing-header">
-    <a href="{% url 'billing:dashboard' %}" class="billing-brand"><span>dev<span>Link</span></span><span class="brand-section">Facturación</span></a>
-    <nav aria-label="Navegación de facturación">
-      <a href="{% url 'billing:dashboard' %}">Comprobantes</a>
-      <a href="{% url 'billing:customers' %}">Clientes</a>
-      <a href="{% url 'billing:cancellations' %}">Anulaciones</a>
-      <a href="{% url 'billing:settings' %}">Configuración fiscal</a>
-      <a href="{% url 'admin_panel:dashboard' %}">Volver al panel</a>
+  <header class="admin-toolbar">
+    <div class="admin-toolbar__title">
+      <span class="admin-mark" aria-hidden="true"><i class="fas fa-file-invoice-dollar"></i></span>
+      <div><h1>Facturación</h1><p>Comprobantes electrónicos y gestión fiscal</p></div>
+    </div>
+    <nav class="admin-toolbar__actions" aria-label="Navegación administrativa y de facturación">
+      <a href="{% url 'home' %}" class="button button--quiet"><i class="fas fa-globe" aria-hidden="true"></i> Ver sitio</a>
+      <a href="{% url 'admin_panel:dashboard' %}" class="button button--quiet"><i class="fas fa-dashboard" aria-hidden="true"></i> Panel</a>
+      <a href="{% url 'billing:dashboard' %}" class="button button--quiet{% if request.resolver_match.url_name == 'dashboard' or request.resolver_match.url_name == 'new' or request.resolver_match.url_name == 'edit' or request.resolver_match.url_name == 'detail' %} billing-nav-active{% endif %}"{% if request.resolver_match.url_name == 'dashboard' or request.resolver_match.url_name == 'new' or request.resolver_match.url_name == 'edit' or request.resolver_match.url_name == 'detail' %} aria-current="page"{% endif %}><i class="fas fa-receipt" aria-hidden="true"></i> Comprobantes</a>
+      <a href="{% url 'billing:customers' %}" class="button button--quiet{% if request.resolver_match.url_name == 'customers' or request.resolver_match.url_name == 'customer_new' or request.resolver_match.url_name == 'customer_edit' %} billing-nav-active{% endif %}"{% if request.resolver_match.url_name == 'customers' or request.resolver_match.url_name == 'customer_new' or request.resolver_match.url_name == 'customer_edit' %} aria-current="page"{% endif %}><i class="fas fa-address-book" aria-hidden="true"></i> Clientes</a>
+      <a href="{% url 'billing:cancellations' %}" class="button button--quiet{% if request.resolver_match.url_name == 'cancellations' or request.resolver_match.url_name == 'cancellation_partial' %} billing-nav-active{% endif %}"{% if request.resolver_match.url_name == 'cancellations' or request.resolver_match.url_name == 'cancellation_partial' %} aria-current="page"{% endif %}><i class="fas fa-rotate-left" aria-hidden="true"></i> Anulaciones</a>
+      <a href="{% url 'billing:settings' %}" class="button button--quiet{% if request.resolver_match.url_name == 'settings' or request.resolver_match.url_name == 'diagnostics' %} billing-nav-active{% endif %}"{% if request.resolver_match.url_name == 'settings' or request.resolver_match.url_name == 'diagnostics' %} aria-current="page"{% endif %}><i class="fas fa-gear" aria-hidden="true"></i> Configuración</a>
+      <span class="admin-user"><i class="fas fa-user-shield" aria-hidden="true"></i> {{ user.username }}</span>
+      <a href="{% url 'logout' %}" class="button button--secondary"><i class="fas fa-sign-out-alt" aria-hidden="true"></i> Salir</a>
     </nav>
   </header>
-  <main id="billing-main" class="billing-main">
-    {% if messages %}<div class="billing-messages" role="status">{% for message in messages %}<p class="notice {{ message.tags }}">{{ message }}</p>{% endfor %}</div>{% endif %}
+  <main id="billing-main" class="admin-content billing-content">
+    {% if messages %}<div class="billing-messages" role="status">{% for message in messages %}<div class="alert alert--{{ message.tags|default:'info' }}"><i class="fas {% if message.tags == 'success' %}fa-circle-check{% elif message.tags == 'warning' %}fa-triangle-exclamation{% elif message.tags == 'error' %}fa-circle-exclamation{% else %}fa-circle-info{% endif %}" aria-hidden="true"></i><span>{{ message }}</span></div>{% endfor %}</div>{% endif %}
     {% block billing_content %}{% endblock %}
+    <footer class="billing-footer">devLink · Facturación propia · Horario de Argentina</footer>
   </main>
-  <footer class="billing-footer">devLink · Facturación propia · Horario de Argentina</footer>
 </div>
 {% block billing_scripts %}{% endblock %}
 {% endblock %}
